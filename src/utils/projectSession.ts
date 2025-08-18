@@ -45,6 +45,11 @@ export class ProjectSession {
   private static projectContextCache: Map<string, ProjectContext> = new Map();
   private static lastCacheUpdate: number = 0;
   private static readonly CACHE_DURATION = 5000; // 5 seconds cache duration / 5秒缓存持续时间
+  
+  // 并发安全的项目上下文管理
+  // Concurrent-safe project context management
+  private static contextStack: Map<string, string> = new Map();
+  private static contextCounter: number = 0;
 
   /**
    * Initialize the project session with default project
@@ -198,16 +203,41 @@ export class ProjectSession {
    */
   private static generateDataDir(projectRoot: string, projectName: string): string {
     const path = require('path');
-    
+
+    // 清理项目名称，确保文件系统安全
+    // Sanitize project name for filesystem safety
+    const sanitizedProjectName = this.sanitizeProjectName(projectName);
+
+    // 绝对路径模式：使用项目名称作为子目录，确保不同项目名称对应不同目录
+    // Absolute path mode: use project name as subfolder to ensure different project names get different directories
     if (process.env.DATA_DIR) {
       if (path.isAbsolute(process.env.DATA_DIR)) {
-        return path.join(process.env.DATA_DIR, projectName);
+        return path.join(process.env.DATA_DIR, sanitizedProjectName);
       } else {
+        // 相对路径模式：数据放在项目根目录下的相对目录，本身已隔离
+        // Relative path mode: data under project root, already isolated per project
         return path.join(projectRoot, process.env.DATA_DIR);
       }
     }
-    
+
+    // 未配置DATA_DIR时，默认使用项目根目录下的data目录，本身已隔离
+    // When DATA_DIR not set, default to projectRoot/data which is per-project
     return path.join(projectRoot, "data");
+  }
+
+  /**
+   * Sanitize project name for filesystem safety
+   * 清理项目名称以确保文件系统安全
+   */
+  private static sanitizeProjectName(projectName: string): string {
+    // 移除或替换不安全的字符，保留字母、数字、连字符和下划线
+    // Remove or replace unsafe characters, keep letters, numbers, hyphens and underscores
+    return projectName
+      .replace(/[<>:"/\\|?*]/g, '_')  // 替换文件系统不安全字符
+      .replace(/\s+/g, '_')           // 替换空格为下划线
+      .replace(/_{2,}/g, '_')         // 合并多个下划线
+      .replace(/^_+|_+$/g, '')        // 移除开头和结尾的下划线
+      .substring(0, 100);             // 限制长度以避免路径过长
   }
 
   /**
@@ -247,6 +277,240 @@ export class ProjectSession {
    */
   static addProjectMetadata(result: string, projectName: string): string {
     return `${result}\n\n<!-- Project: ${projectName} -->`;
+  }
+
+  /**
+   * Execute a function with a specific project context in a thread-safe manner
+   * 以线程安全的方式在特定项目上下文中执行函数
+   * 
+   * @param projectName The project name to use for this operation / 此操作要使用的项目名称
+   * @param operation The async function to execute / 要执行的异步函数
+   * @returns The result of the operation / 操作的结果
+   */
+  static async withProjectContext<T>(
+    projectName: string | undefined,
+    operation: () => Promise<T>
+  ): Promise<T> {
+    if (!projectName) {
+      // 如果没有指定项目，直接执行操作
+      // If no project specified, execute operation directly
+      return await operation();
+    }
+
+    // 生成唯一的上下文标识符
+    // Generate unique context identifier
+    const contextId = `ctx_${Date.now()}_${++this.contextCounter}`;
+    const previousProject = this.getCurrentProject();
+    
+    try {
+      // 设置上下文映射和项目
+      // Set context mapping and project
+      this.contextStack.set(contextId, projectName);
+      this.setCurrentProject(projectName);
+      
+      // 执行操作
+      // Execute operation
+      return await operation();
+    } finally {
+      // 清理上下文并恢复原项目
+      // Clean up context and restore original project
+      this.contextStack.delete(contextId);
+      this.setCurrentProject(previousProject);
+    }
+  }
+
+  /**
+   * Get the current project context for the active thread
+   * 获取活动线程的当前项目上下文
+   * 
+   * @returns The current project name for this thread / 此线程的当前项目名称
+   */
+  static getCurrentThreadProject(): string {
+    // 在单线程环境中，直接返回当前项目
+    // In single-threaded environment, return current project directly
+    return this.getCurrentProject();
+  }
+
+  /**
+   * Clean up any leaked project contexts
+   * 清理任何泄漏的项目上下文
+   */
+  static cleanupProjectContexts(): void {
+    // 清理超过一定时间的上下文
+    // Clean up contexts older than a certain time
+    const now = Date.now();
+    const maxAge = 60000; // 1 minute
+    
+    for (const [contextId] of this.contextStack) {
+      const timestamp = parseInt(contextId.split('_')[1]);
+      if (now - timestamp > maxAge) {
+        this.contextStack.delete(contextId);
+      }
+    }
+  }
+
+  /**
+   * Get statistics about active project contexts (for debugging)
+   * 获取活动项目上下文的统计信息（用于调试）
+   */
+  static getProjectContextStats(): {
+    activeContexts: number;
+    currentProject: string;
+    cacheSize: number;
+  } {
+    return {
+      activeContexts: this.contextStack.size,
+      currentProject: this.getCurrentProject(),
+      cacheSize: this.projectContextCache.size,
+    };
+  }
+
+  /**
+   * Validate project context against task metadata
+   * 根据任务元数据验证项目上下文
+   * 
+   * @param expectedProject The expected project name / 预期的项目名称
+   * @param taskContent The task content to check / 要检查的任务内容
+   * @returns Validation result / 验证结果
+   */
+  static validateProjectContext(expectedProject: string, taskContent?: string): {
+    isValid: boolean;
+    detectedProject?: string;
+    suggestion?: string;
+  } {
+    if (!taskContent) {
+      return { isValid: true };
+    }
+
+    // 从任务内容中提取项目元数据
+    // Extract project metadata from task content
+    const projectMetadataMatch = taskContent.match(/<!-- Project: (.+?) -->/);
+    
+    if (!projectMetadataMatch) {
+      // 没有项目元数据，假设有效
+      // No project metadata, assume valid
+      return { isValid: true };
+    }
+
+    const detectedProject = projectMetadataMatch[1].trim();
+    
+    if (detectedProject !== expectedProject) {
+      // 项目上下文不匹配
+      // Project context mismatch
+      return {
+        isValid: false,
+        detectedProject,
+        suggestion: this.generateProjectSwitchSuggestion(detectedProject, expectedProject)
+      };
+    }
+
+    return { isValid: true, detectedProject };
+  }
+
+  /**
+   * Generate intelligent project switch suggestion
+   * 生成智能项目切换建议
+   * 
+   * @param detectedProject The project detected from metadata / 从元数据检测到的项目
+   * @param currentProject The current project context / 当前项目上下文
+   * @returns User-friendly suggestion message / 用户友好的建议消息
+   */
+  static generateProjectSwitchSuggestion(detectedProject: string, currentProject: string): string {
+    return `检测到任务列表属于项目 "${detectedProject}"，但当前项目上下文为 "${currentProject}"。
+建议切换到正确的项目上下文以避免数据混乱。
+使用工具：switchProject({ project: "${detectedProject}" })`;
+  }
+
+  /**
+   * Auto-detect project from task list content
+   * 从任务列表内容自动检测项目
+   * 
+   * @param taskListContent The full task list content / 完整的任务列表内容
+   * @returns Detected project information / 检测到的项目信息
+   */
+  static autoDetectProject(taskListContent: string): {
+    detectedProject?: string;
+    confidence: number;
+    metadata: {
+      hasProjectMetadata: boolean;
+      metadataCount: number;
+      consistentProject: boolean;
+    };
+  } {
+    // 查找所有项目元数据标记
+    // Find all project metadata markers
+    const projectMatches = taskListContent.match(/<!-- Project: (.+?) -->/g);
+    
+    if (!projectMatches || projectMatches.length === 0) {
+      return {
+        confidence: 0,
+        metadata: {
+          hasProjectMetadata: false,
+          metadataCount: 0,
+          consistentProject: false
+        }
+      };
+    }
+
+    // 提取项目名称
+    // Extract project names
+    const projectNames = projectMatches.map(match => {
+      const nameMatch = match.match(/<!-- Project: (.+?) -->/);
+      return nameMatch ? nameMatch[1].trim() : '';
+    }).filter(name => name);
+
+    // 检查项目一致性
+    // Check project consistency
+    const uniqueProjects = [...new Set(projectNames)];
+    const consistentProject = uniqueProjects.length === 1;
+    const mostCommonProject = uniqueProjects.length > 0 ? uniqueProjects[0] : undefined;
+
+    // 计算置信度
+    // Calculate confidence
+    let confidence = 0;
+    if (consistentProject && mostCommonProject) {
+      confidence = Math.min(0.9, 0.5 + (projectMatches.length * 0.1));
+    } else if (mostCommonProject) {
+      confidence = 0.3;
+    }
+
+    return {
+      detectedProject: mostCommonProject,
+      confidence,
+      metadata: {
+        hasProjectMetadata: true,
+        metadataCount: projectMatches.length,
+        consistentProject
+      }
+    };
+  }
+
+  /**
+   * Generate project context mismatch warning
+   * 生成项目上下文不匹配警告
+   * 
+   * @param validation The validation result / 验证结果
+   * @returns Formatted warning message / 格式化的警告消息
+   */
+  static generateContextMismatchWarning(validation: {
+    isValid: boolean;
+    detectedProject?: string;
+    suggestion?: string;
+  }): string {
+    if (validation.isValid) {
+      return '';
+    }
+
+    return `⚠️ **项目上下文不匹配警告**
+
+${validation.suggestion}
+
+**注意**：继续在错误的项目上下文中操作可能导致：
+- 任务数据被写入错误的项目文件
+- 任务列表混乱和数据覆盖
+- 项目间数据泄露
+
+建议立即切换到正确的项目上下文。`;
   }
 }
 

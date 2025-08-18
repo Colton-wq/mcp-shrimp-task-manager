@@ -7,13 +7,22 @@ export const listTasksSchema = z.object({
   status: z
     .enum(["all", "pending", "in_progress", "completed"])
     .describe("要列出的任務狀態，可選擇 'all' 列出所有任務，或指定具體狀態"),
-    // Task status to list, choose 'all' to list all tasks, or specify a specific status
+  project: z.string().optional().describe("指定要讀取的項目（可選），省略則使用目前會話項目"),
 });
 
 // 列出任務工具
 // List tasks tool
-export async function listTasks({ status }: z.infer<typeof listTasksSchema>) {
-  const tasks = await getAllTasks();
+export async function listTasks({ status, project }: z.infer<typeof listTasksSchema>) {
+  const { ProjectSession } = await import("../../utils/projectSession.js");
+
+  return await ProjectSession.withProjectContext(project, async () => {
+    const tasks = await getAllTasks(project);
+
+    // 验证项目上下文一致性
+    // Validate project context consistency
+    const { getProjectContextValidation } = await import("../../models/taskModel.js");
+    const currentProject = project || ProjectSession.getCurrentProject();
+    const validation = await getProjectContextValidation(currentProject);
   let filteredTasks = tasks;
   switch (status) {
     case "all":
@@ -59,20 +68,44 @@ export async function listTasks({ status }: z.infer<typeof listTasksSchema>) {
     return acc;
   }, {} as Record<string, typeof tasks>);
 
-  // 使用prompt生成器獲取最終prompt
-  // Use prompt generator to get the final prompt
+  // 檢測潛在的專案衝突並準備建議附註
+  let suggestionsFooter = "";
+  try {
+    const { detectProjectConflicts } = await import("../../utils/projectConflictDetector.js");
+    const conflict = await detectProjectConflicts(tasks);
+    if (conflict.hasConflicts && conflict.recoverySuggestions?.length) {
+      const top = conflict.recoverySuggestions
+        .slice(0, 2)
+        .map(s => s.type)
+        .join(" or ");
+      suggestionsFooter = `\n\n⚠️ Project conflicts detected. Consider: ${top}`;
+    }
+  } catch {}
+
   const prompt = await getListTasksPrompt({
     status,
     tasks: tasksByStatus,
     allTasks: filteredTasks,
   });
 
+  // 添加项目上下文验证警告（如果需要）
+  // Add project context validation warning (if needed)
+  let contextWarning = "";
+  if (!validation.isValid && validation.warning) {
+    contextWarning = `\n\n${validation.warning}`;
+  }
+
+  // 附加項目元數據，幫助AI識別當前內容所屬項目
+  const effectiveProject = project ?? currentProject;
+  const textWithMeta = ProjectSession.addProjectMetadata(prompt + suggestionsFooter + contextWarning, effectiveProject);
+
   return {
     content: [
       {
         type: "text" as const,
-        text: prompt,
+        text: textWithMeta,
       },
     ],
   };
+  });
 }

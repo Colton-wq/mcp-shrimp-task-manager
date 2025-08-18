@@ -1,6 +1,6 @@
 # Available Tools
 
-## default_api.codebase_search
+## search_code_desktop-commander
 
 Find snippets of code from the codebase most relevant to the search query.
 This is a semantic search tool, so the query should ask for something semantically matching what is needed.
@@ -14,7 +14,7 @@ Their exact wording/phrasing can often be helpful for the semantic search query.
 - `explanation`: (string | null, optional) One sentence explanation as to why this tool is being used, and how it contributes to the goal.
 - `target_directories`: (list[string] | null, optional) Glob patterns for directories to search over
 
-## default_api.read_file
+## read_file_desktop-commander
 
 Read the contents of a file. the output of this tool call will be the 1-indexed file contents from start_line_one_indexed to end_line_one_indexed_inclusive, together with a summary of the lines outside start_line_one_indexed and end_line_one_indexed_inclusive.
 Note that this call can view at most 250 lines at a time and 200 lines minimum.
@@ -38,14 +38,11 @@ Reading the entire file is not allowed in most cases. You are only allowed to re
 - `target_file`: (string, required) The path of the file to read. You can use either a relative path in the workspace or an absolute path. If an absolute path is provided, it will be preserved as is.
 - `explanation`: (string | null, optional) One sentence explanation as to why this tool is being used, and how it contributes to the goal.
 
-## default_api.run_terminal_cmd
+## start_process_desktop-commander
 
-PROPOSE a command to run on behalf of the user.
-If you have this tool, note that you DO have the ability to run commands directly on the USER's system.
-Note that the user will have to approve the command before it is executed.
-The user may reject it if it is not to their liking, or may modify the command before approving it. If they do change it, take those changes into account.
-The actual command will NOT execute until the user approves it. The user may not approve it immediately. Do NOT assume the command has started running.
-If the step is WAITING for user approval, it has NOT started running.
+Start a new process with intelligent state detection. Use Desktop Commander MCP process tools exclusively.
+Allowed: `start_process_desktop-commander`, `interact_with_process_desktop-commander`, `read_process_output_desktop-commander`, `kill_process_desktop-commander`.
+Forbidden: VSCode Terminal, `read-terminal`, non-Desktop Commander `launch-process`.
 In using these tools, adhere to the following guidelines:
 
 1. Based on the contents of the conversation, you will be told if you are in the same shell as a previous step or a different shell.
@@ -98,7 +95,7 @@ eg:
 - `explanation`: (string | null, optional) One sentence explanation as to why this tool is being used, and how it contributes to the goal.
 - `include_pattern`: (string | null, optional) Glob pattern for files to include (e.g. '\*.ts' for TypeScript files)
 
-## default_api.edit_file
+## edit_block_desktop-commander
 
 Use this tool to propose an edit to an existing file or create a new file.
 
@@ -152,15 +149,23 @@ Deletes a file at the specified path. The operation will fail gracefully if: - T
 ## default_api.reapply
 
 Calls a smarter model to apply the last edit to the specified file.
-Use this tool immediately after the result of an edit_file tool call ONLY IF the diff is not what you expected, indicating the model applying the changes was not smart enough to follow your instructions.
+Use this tool immediately after the result of an edit_block_desktop-commander tool call ONLY IF the diff is not what you expected, indicating the model applying the changes was not smart enough to follow your instructions.
 
 ### Arguments:
 
 - `target_file`: (string, required) The relative path to the file to reapply the last edit to. You can use either a relative path in the workspace or an absolute path. If an absolute path is provided, it will be preserved as is.
 
-## default_api.web_search
+## Force Search Protocol v2.0
 
-Search the web for real-time information about any topic. Use this tool when you need up-to-date information that might not be available in your training data, or when you need to verify current facts. The search results will include relevant snippets and URLs from web pages. This is particularly useful for questions about current events, technology updates, or any topic that requires recent information.
+Follow comprehensive search strategy using multiple sources:
+1. Two-keyword progressive search strategy (avoid long descriptive queries upfront)
+2. Multi-source tools: Exa MCP / tavily-remote MCP / GitHub MCP / Context7
+3. Retrieve latest technical information (2025)
+4. Multi-source validation with full citations and authority rating
+5. Critical analysis: question assumptions and identify counterexamples
+6. Cross-validation, logic checks, technical feasibility assessment
+7. Standard citation format, limitations statement
+8. Prohibited: relying solely on pretraining knowledge
 
 ### Arguments:
 

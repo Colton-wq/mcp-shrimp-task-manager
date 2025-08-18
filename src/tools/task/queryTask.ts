@@ -5,6 +5,7 @@ import { getQueryTaskPrompt } from "../../prompts/index.js";
 // 查詢任務工具
 // Query task tool
 export const queryTaskSchema = z.object({
+  project: z.string().optional().describe("指定查詢的項目（可選），省略則使用目前會話項目"),
   query: z
     .string()
     .min(1, {
@@ -44,11 +45,16 @@ export async function queryTask({
   isId = false,
   page = 1,
   pageSize = 3,
+  project,
 }: z.infer<typeof queryTaskSchema>) {
   try {
-    // 使用系統指令搜尋函數
-    // Use system command search function
-    const results = await searchTasksWithCommand(query, isId, page, pageSize);
+    const { ProjectSession } = await import("../../utils/projectSession.js");
+    
+    return await ProjectSession.withProjectContext(project, async () => {
+      // 使用系統指令搜尋函數
+      // Use system command search function
+      const currentProject = ProjectSession.getCurrentProject();
+      const results = await searchTasksWithCommand(query, isId, page, pageSize, currentProject);
 
     // 使用prompt生成器獲取最終prompt
     // Use prompt generator to get the final prompt
@@ -63,13 +69,14 @@ export async function queryTask({
     });
 
     return {
-      content: [
-        {
-          type: "text" as const,
-          text: prompt,
-        },
-      ],
-    };
+        content: [
+          {
+            type: "text" as const,
+            text: prompt,
+          },
+        ],
+      };
+    }); // 结束 withProjectContext
   } catch (error) {
     return {
       content: [

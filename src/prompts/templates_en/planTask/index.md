@@ -35,14 +35,14 @@ You must complete the following sub-steps in sequence, and at the end call the `
    If there is any uncertainty or lack of confidence, **must do one of the following**:
 
    - Ask the user for clarification
-   - Use `query_task`, `read_file`, `codebase_search` or other similar tools to query existing programs/architecture
-   - Use `web_search` or other web search tools to query unfamiliar concepts or technologies  
-     Speculation is prohibited; all information must have traceable sources.
+   - Use `query_task`, `read_file_desktop-commander`, `search_code_desktop-commander`, and Everything MCP (file search) to query existing programs/architecture
+   - Apply Force Search Protocol v2.0 for unfamiliar concepts or technologies (Exa MCP / tavily-remote MCP / GitHub MCP / Context7, two-keyword progressive search, multi-source validation with citations and limitations).
+     Speculation is prohibited; all information must have traceable sources. Do not rely solely on pretraining knowledge.
 
 4. **Check Existing Programs and Structures**
 
    - Use precise search strategies:
-     - Use `read_file`, `codebase_search` or other similar tools to query existing implementation methods related to the task
+     - Use `read_file_desktop-commander`, `search_code_desktop-commander` or Everything MCP (file search) to query existing implementation methods related to the task
      - Look for existing code with functionality similar to the current task
      - Analyze directory structure to find similar functional modules
    - Analyze code style and conventions:

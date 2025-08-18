@@ -13,14 +13,14 @@ export const clearAllTasksSchema = z.object({
     .refine((val) => val === true, {
       message:
         "必須明確確認清除操作，請將 confirm 參數設置為 true 以確認此危險操作",
-        // Must explicitly confirm clear operation, please set confirm parameter to true to confirm this dangerous operation
     })
     .describe("確認刪除所有未完成的任務（此操作不可逆）"),
-    // Confirm deletion of all incomplete tasks (this operation is irreversible)
+  project: z.string().optional().describe("指定要清空的項目（可選），省略則使用目前會話項目"),
 });
 
 export async function clearAllTasks({
   confirm,
+  project,
 }: z.infer<typeof clearAllTasksSchema>) {
   // 安全檢查：如果沒有確認，則拒絕操作
   // Safety check: refuse operation if not confirmed
@@ -38,7 +38,7 @@ export async function clearAllTasks({
 
   // 檢查是否真的有任務需要清除
   // Check if there are actually tasks that need to be cleared
-  const allTasks = await getAllTasks();
+  const allTasks = await getAllTasks(project);
   if (allTasks.length === 0) {
     return {
       content: [
@@ -52,7 +52,7 @@ export async function clearAllTasks({
 
   // 執行清除操作
   // Execute clear operation
-  const result = await modelClearAllTasks();
+  const result = await modelClearAllTasks(project);
 
   return {
     content: [

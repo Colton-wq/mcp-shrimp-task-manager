@@ -685,7 +685,8 @@ export async function createProjectBackup(
     // Write backup file with file locking
     // 使用文件锁定写入备份文件
     await withFileLock(backupFilePath, async () => {
-      await fs.writeFile(backupFilePath, JSON.stringify(backupData, null, 2));
+      const { safeWriteJson } = await import("./fileSafe.js");
+      await safeWriteJson(backupFilePath, backupData);
     });
 
     operation.success = true;

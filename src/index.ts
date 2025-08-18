@@ -47,6 +47,12 @@ import {
   initProjectRulesSchema,
   researchMode,
   researchModeSchema,
+  listProjects,
+  listProjectsSchema,
+  switchProject,
+  switchProjectSchema,
+  validateProjectContext,
+  validateProjectContextSchema,
 } from "./tools/index.js";
 
 async function main() {
@@ -185,6 +191,21 @@ async function main() {
               "toolsDescription/initProjectRules.md"
             ),
             inputSchema: zodToJsonSchema(initProjectRulesSchema),
+          },
+          {
+            name: "list_projects",
+            description: "List available projects by scanning data directory parents; returns a simple list for AI to choose from.",
+            inputSchema: zodToJsonSchema(listProjectsSchema),
+          },
+          {
+            name: "switch_project",
+            description: "Switch active project context for subsequent tool calls.",
+            inputSchema: zodToJsonSchema(switchProjectSchema),
+          },
+          {
+            name: "validate_project_context",
+            description: "Validate project context consistency and provide intelligent suggestions for project switching when mismatches are detected.",
+            inputSchema: zodToJsonSchema(validateProjectContextSchema),
           },
           {
             name: "research_mode",
@@ -339,6 +360,28 @@ async function main() {
               return await processThought(parsedArgs.data);
             case "init_project_rules":
               return await initProjectRules();
+            case "list_projects":
+              return await listProjects();
+            case "switch_project":
+              parsedArgs = await switchProjectSchema.safeParseAsync(
+                request.params.arguments
+              );
+              if (!parsedArgs.success) {
+                throw new Error(
+                  `Invalid arguments for tool ${request.params.name}: ${parsedArgs.error.message}`
+                );
+              }
+              return await switchProject(parsedArgs.data);
+            case "validate_project_context":
+              parsedArgs = await validateProjectContextSchema.safeParseAsync(
+                request.params.arguments
+              );
+              if (!parsedArgs.success) {
+                throw new Error(
+                  `Invalid arguments for tool ${request.params.name}: ${parsedArgs.error.message}`
+                );
+              }
+              return await validateProjectContext(parsedArgs.data);
             case "research_mode":
               parsedArgs = await researchModeSchema.safeParseAsync(
                 request.params.arguments

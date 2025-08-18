@@ -10,6 +10,7 @@ import { getUpdateTaskContentPrompt } from "../../prompts/index.js";
 // 更新任務內容工具
 // Update task content tool
 export const updateTaskContentSchema = z.object({
+  project: z.string().optional().describe("指定要更新的項目（可選），省略則使用目前會話項目"),
   taskId: z
     .string()
     .regex(UUID_V4_REGEX, {
@@ -88,6 +89,7 @@ export async function updateTaskContent({
   dependencies,
   implementationGuide,
   verificationCriteria,
+  project,
 }: z.infer<typeof updateTaskContentSchema>) {
   if (relatedFiles) {
     for (const file of relatedFiles) {
@@ -176,31 +178,35 @@ export async function updateTaskContent({
   if (verificationCriteria) updateSummary += `，更新驗證標準`;
   // , update verification criteria
 
-  // 執行更新操作
-  // Execute update operation
-  const result = await modelUpdateTaskContent(taskId, {
-    name,
-    description,
-    notes,
-    relatedFiles,
-    dependencies,
-    implementationGuide,
-    verificationCriteria,
-  });
+  // 執行更新操作（可選臨時切換項目）
+  // Execute update (optionally switch project temporarily)
+  const { ProjectSession } = await import("../../utils/projectSession.js");
+  
+  return await ProjectSession.withProjectContext(project, async () => {
+    const result = await modelUpdateTaskContent(taskId, {
+      name,
+      description,
+      notes,
+      relatedFiles,
+      dependencies,
+      implementationGuide,
+      verificationCriteria,
+    });
 
-  return {
-    content: [
-      {
-        type: "text" as const,
-        text: await getUpdateTaskContentPrompt({
-          taskId,
-          task,
-          success: result.success,
-          message: result.message,
-          updatedTask: result.task,
-        }),
-      },
-    ],
-    isError: !result.success,
-  };
+    return {
+      content: [
+        {
+          type: "text" as const,
+          text: await getUpdateTaskContentPrompt({
+            taskId,
+            task,
+            success: result.success,
+            message: result.message,
+            updatedTask: result.task,
+          }),
+        },
+      ],
+      isError: !result.success,
+    };
+  }); // 结束 withProjectContext
 }

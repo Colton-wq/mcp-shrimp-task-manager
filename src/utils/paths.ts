@@ -60,7 +60,7 @@ export async function getDataDir(forceRefresh = false, projectOverride?: string)
 
   // 嘗試使用項目會話管理獲取項目上下文
   // Try to get project context using project session management
-  if (server && !projectOverride) {
+  if (server) {
     try {
       const projectContext = await getActiveProjectContext(server, projectOverride);
       if (projectContext) {
@@ -71,6 +71,29 @@ export async function getDataDir(forceRefresh = false, projectOverride?: string)
     } catch (error) {
       // 如果項目上下文獲取失敗，回退到原有邏輯
       // If project context acquisition fails, fall back to original logic
+    }
+  }
+
+  // 如果没有服务器或项目上下文获取失败，但有项目覆盖参数，使用简化的项目隔离逻辑
+  // If no server or project context failed, but have project override, use simplified project isolation logic
+  if (projectOverride || !server) {
+    const currentProject = projectOverride || ProjectSession.getCurrentProject();
+    if (currentProject && currentProject !== 'main') {
+      // 使用项目特定的数据目录
+      // Use project-specific data directory
+      const sanitizedProjectName = currentProject
+        .replace(/[<>:"/\\|?*]/g, '_')
+        .replace(/\s+/g, '_')
+        .replace(/_{2,}/g, '_')
+        .replace(/^_+|_+$/g, '')
+        .substring(0, 100);
+
+      if (process.env.DATA_DIR && path.isAbsolute(process.env.DATA_DIR)) {
+        const projectDataDir = path.join(process.env.DATA_DIR, sanitizedProjectName);
+        cachedDataDir = projectDataDir;
+        lastRootsCall = now;
+        return cachedDataDir;
+      }
     }
   }
 
@@ -167,27 +190,39 @@ export async function getDataDir(forceRefresh = false, projectOverride?: string)
 /**
  * 取得任務檔案路徑
  * Get task file path
+ *
+ * @param forceRefresh 強制刷新緩存，跳過緩存機制 / Force refresh cache, skip cache mechanism
+ * @param projectOverride 可選的項目名稱覆蓋 / Optional project name override
+ * @returns 任務檔案路徑 / Task file path
  */
-export async function getTasksFilePath(): Promise<string> {
-  const dataDir = await getDataDir();
+export async function getTasksFilePath(forceRefresh = false, projectOverride?: string): Promise<string> {
+  const dataDir = await getDataDir(forceRefresh, projectOverride);
   return path.join(dataDir, "tasks.json");
 }
 
 /**
  * 取得記憶體資料夾路徑
  * Get memory directory path
+ *
+ * @param forceRefresh 強制刷新緩存，跳過緩存機制 / Force refresh cache, skip cache mechanism
+ * @param projectOverride 可選的項目名稱覆蓋 / Optional project name override
+ * @returns 記憶體資料夾路徑 / Memory directory path
  */
-export async function getMemoryDir(): Promise<string> {
-  const dataDir = await getDataDir();
+export async function getMemoryDir(forceRefresh = false, projectOverride?: string): Promise<string> {
+  const dataDir = await getDataDir(forceRefresh, projectOverride);
   return path.join(dataDir, "memory");
 }
 
 /**
  * 取得 WebGUI 檔案路徑
  * Get WebGUI file path
+ *
+ * @param forceRefresh 強制刷新緩存，跳過緩存機制 / Force refresh cache, skip cache mechanism
+ * @param projectOverride 可選的項目名稱覆蓋 / Optional project name override
+ * @returns WebGUI 檔案路徑 / WebGUI file path
  */
-export async function getWebGuiFilePath(): Promise<string> {
-  const dataDir = await getDataDir();
+export async function getWebGuiFilePath(forceRefresh = false, projectOverride?: string): Promise<string> {
+  const dataDir = await getDataDir(forceRefresh, projectOverride);
   return path.join(dataDir, "WebGUI.md");
 }
 

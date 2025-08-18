@@ -54,7 +54,7 @@ async function initGitIfNeeded(dataDir: string): Promise<void> {
     await execAsync(`cd "${dataDir}" && git init`);
     await execAsync(`cd "${dataDir}" && git config user.name "Shrimp Task Manager"`);
     await execAsync(`cd "${dataDir}" && git config user.email "shrimp@task-manager.local"`);
-    
+
     // Create .gitignore
     const gitignore = `# Temporary files
 *.tmp
@@ -65,10 +65,14 @@ async function initGitIfNeeded(dataDir: string): Promise<void> {
 Thumbs.db
 `;
     await fs.writeFile(path.join(dataDir, '.gitignore'), gitignore);
-    
-    // Initial commit
-    await execAsync(`cd "${dataDir}" && git add .`);
-    await execAsync(`cd "${dataDir}" && git commit -m "Initial commit: Initialize task repository"`);
+
+    // Initial commit (stage minimal files to avoid large directories)
+    try {
+      await execAsync(`cd "${dataDir}" && git add tasks.json .gitignore`);
+      await execAsync(`cd "${dataDir}" && git commit -m "Initial commit: Initialize task repository"`);
+    } catch {
+      // If staging minimal files fails, do not block main flow
+    }
   }
 }
 
@@ -111,9 +115,13 @@ const execPromise = promisify(exec);
 
 // 確保數據目錄存在
 // Ensure data directory exists
-async function ensureDataDir() {
-  const DATA_DIR = await getDataDir();
-  const TASKS_FILE = await getTasksFilePath();
+async function ensureDataDir(projectOverride?: string) {
+  // 获取当前项目上下文
+  // Get current project context
+  const currentProject = projectOverride || ProjectSession.getCurrentProject();
+
+  const DATA_DIR = await getDataDir(false, currentProject);
+  const TASKS_FILE = await getTasksFilePath(false, currentProject);
 
   try {
     await fs.access(DATA_DIR);
@@ -130,9 +138,13 @@ async function ensureDataDir() {
 
 // 讀取所有任務
 // Read all tasks
-async function readTasks(): Promise<Task[]> {
-  await ensureDataDir();
-  const TASKS_FILE = await getTasksFilePath();
+async function readTasks(projectOverride?: string): Promise<Task[]> {
+  // 获取当前项目上下文
+  // Get current project context
+  const currentProject = projectOverride || ProjectSession.getCurrentProject();
+
+  await ensureDataDir(currentProject);
+  const TASKS_FILE = await getTasksFilePath(false, currentProject);
   const data = await fs.readFile(TASKS_FILE, "utf-8");
   const tasks = JSON.parse(data).tasks;
 
@@ -153,40 +165,49 @@ async function writeTasks(
   commitMessage?: string,
   projectContext?: string
 ): Promise<void> {
-  await ensureDataDir();
-
-  // 獲取項目上下文進行驗證
-  // Get project context for validation
+  // 獲取當前項目上下文以便後續恢復
+  // Get current project context for later restoration
   const currentProject = ProjectSession.getCurrentProject();
   const targetProject = projectContext || currentProject;
+  await ensureDataDir(targetProject);
 
-  // 獲取目標路徑
-  // Get target paths
-  const TASKS_FILE = await getTasksFilePath();
-  const DATA_DIR = await getDataDir();
-
-  // 項目上下文驗證
-  // Project context validation
+  // 項目上下文安全切換機制
+  // Safe project context switching mechanism
   if (projectContext && projectContext !== currentProject) {
-    // 如果指定了不同的項目上下文，更新當前項目
-    // If a different project context is specified, update current project
+    // 如果指定了不同的項目上下文，先切換項目
+    // If a different project context is specified, switch project first
     ProjectSession.setCurrentProject(projectContext);
   }
 
-  // 使用文件鎖定確保原子操作
-  // Use file locking to ensure atomic operations
-  await withFileLock(TASKS_FILE, async () => {
-    // Initialize git if needed
-    await initGitIfNeeded(DATA_DIR);
+  try {
+    // 在項目上下文切換後獲取正確的目標路徑
+    // Get correct target paths after project context switch
+    const currentProjectForPaths = ProjectSession.getCurrentProject();
+    const TASKS_FILE = await getTasksFilePath(false, currentProjectForPaths);
+    const DATA_DIR = await getDataDir(false, currentProjectForPaths);
 
-    // Write the tasks file
-    await fs.writeFile(TASKS_FILE, JSON.stringify({ tasks }, null, 2));
+    // 使用文件鎖定確保原子操作
+    // Use file locking to ensure atomic operations
+    await withFileLock(TASKS_FILE, async () => {
+      // Initialize git if needed
+      await initGitIfNeeded(DATA_DIR);
 
-    // Commit the changes
-    if (commitMessage) {
-      await commitTaskChanges(DATA_DIR, commitMessage);
+      // Write the tasks file (safe write)
+      const { safeWriteJson } = await import("../utils/fileSafe.js");
+      await safeWriteJson(TASKS_FILE, { tasks });
+
+      // Commit the changes
+      if (commitMessage) {
+        await commitTaskChanges(DATA_DIR, commitMessage);
+      }
+    });
+  } finally {
+    // 確保在任何情況下都恢復原項目上下文
+    // Ensure original project context is restored in any case
+    if (projectContext && projectContext !== currentProject) {
+      ProjectSession.setCurrentProject(currentProject);
     }
-  });
+  }
 }
 
 // 獲取所有任務
@@ -198,7 +219,13 @@ export async function getAllTasks(projectContext?: string): Promise<Task[]> {
     const currentProject = ProjectSession.getCurrentProject();
     try {
       ProjectSession.setCurrentProject(projectContext);
-      return await readTasks();
+      const tasks = await readTasks(projectContext);
+
+      // 驗證項目上下文一致性
+      // Validate project context consistency
+      await validateTasksProjectContext(tasks, projectContext);
+
+      return tasks;
     } finally {
       // 恢復原來的項目上下文
       // Restore original project context
@@ -206,13 +233,16 @@ export async function getAllTasks(projectContext?: string): Promise<Task[]> {
     }
   }
 
-  return await readTasks();
+  // 使用当前项目上下文读取任务
+  // Read tasks using current project context
+  const currentProject = ProjectSession.getCurrentProject();
+  return await readTasks(currentProject);
 }
 
 // 根據ID獲取任務
 // Get task by ID
-export async function getTaskById(taskId: string): Promise<Task | null> {
-  const tasks = await readTasks();
+export async function getTaskById(taskId: string, projectContext?: string): Promise<Task | null> {
+  const tasks = await readTasks(projectContext);
   return tasks.find((task) => task.id === taskId) || null;
 }
 
@@ -227,7 +257,7 @@ export async function createTask(
   agent?: string,
   projectContext?: string
 ): Promise<Task> {
-  const tasks = await readTasks();
+  const tasks = await readTasks(projectContext);
 
   const dependencyObjects: TaskDependency[] = dependencies.map((taskId) => ({
     taskId,
@@ -259,7 +289,7 @@ export async function updateTask(
   updates: Partial<Task>,
   projectContext?: string
 ): Promise<Task | null> {
-  const tasks = await readTasks();
+  const tasks = await readTasks(projectContext);
   const taskIndex = tasks.findIndex((task) => task.id === taskId);
 
   if (taskIndex === -1) {
@@ -459,7 +489,7 @@ export async function batchCreateOrUpdateTasks(
   projectContext?: string // 新增：項目上下文
 ): Promise<Task[]> {
   // 讀取現有的所有任務
-  const existingTasks = await readTasks();
+  const existingTasks = await readTasks(projectContext);
 
   // 根據更新模式處理現有任務
   let tasksToKeep: Task[] = [];
@@ -666,9 +696,10 @@ export async function batchCreateOrUpdateTasks(
 // 檢查任務是否可以執行（所有依賴都已完成）
 // Check if task can be executed (all dependencies completed)
 export async function canExecuteTask(
-  taskId: string
+  taskId: string,
+  projectContext?: string
 ): Promise<{ canExecute: boolean; blockedBy?: string[] }> {
-  const task = await getTaskById(taskId);
+  const task = await getTaskById(taskId, projectContext);
 
   if (!task) {
     return { canExecute: false };
@@ -684,7 +715,7 @@ export async function canExecuteTask(
     return { canExecute: true }; // Tasks without dependencies can be executed directly
   }
 
-  const allTasks = await readTasks();
+  const allTasks = await readTasks(projectContext);
   const blockedBy: string[] = [];
 
   for (const dependency of task.dependencies) {
@@ -707,7 +738,7 @@ export async function deleteTask(
   taskId: string,
   projectContext?: string
 ): Promise<{ success: boolean; message: string }> {
-  const tasks = await readTasks();
+  const tasks = await readTasks(projectContext);
   const taskIndex = tasks.findIndex((task) => task.id === taskId);
 
   if (taskIndex === -1) {
@@ -900,11 +931,11 @@ export async function clearAllTasks(projectContext?: string): Promise<{
   try {
     // 確保數據目錄存在
     // Ensure data directory exists
-    await ensureDataDir();
+    await ensureDataDir(projectContext);
 
     // 讀取現有任務
     // Read existing tasks
-    const allTasks = await readTasks();
+    const allTasks = await readTasks(projectContext);
 
     // 如果沒有任務，直接返回
     // If no tasks, return directly
@@ -970,7 +1001,8 @@ export async function searchTasksWithCommand(
   query: string,
   isId: boolean = false,
   page: number = 1,
-  pageSize: number = 5
+  pageSize: number = 5,
+  projectContext?: string
 ): Promise<{
   tasks: Task[];
   pagination: {
@@ -982,12 +1014,12 @@ export async function searchTasksWithCommand(
 }> {
   // 讀取當前任務檔案中的任務
   // Read tasks from current task file
-  const currentTasks = await readTasks();
+  const currentTasks = await readTasks(projectContext);
   let memoryTasks: Task[] = [];
 
   // 搜尋記憶資料夾中的任務
   // Search tasks in memory folder
-  const MEMORY_DIR = await getMemoryDir();
+  const MEMORY_DIR = await getMemoryDir(false, projectContext);
 
   try {
     // 確保記憶資料夾存在
@@ -1250,5 +1282,75 @@ function filterCurrentTasks(
         );
       });
     });
+  }
+}
+
+/**
+ * Validate tasks project context consistency
+ * 验证任务项目上下文一致性
+ * 
+ * @param tasks The tasks to validate / 要验证的任务
+ * @param expectedProject The expected project name / 预期的项目名称
+ */
+async function validateTasksProjectContext(tasks: Task[], expectedProject: string): Promise<void> {
+  if (tasks.length === 0) {
+    return;
+  }
+
+  // 检查任务文件的项目元数据
+  // Check project metadata in task file
+  try {
+    const tasksFilePath = await getTasksFilePath(false, expectedProject);
+    const { readFile } = await import("fs/promises");
+    const fileContent = await readFile(tasksFilePath, "utf-8");
+    
+    // 使用 ProjectSession 的验证方法
+    // Use ProjectSession validation method
+    const validation = ProjectSession.validateProjectContext(expectedProject, fileContent);
+    
+    if (!validation.isValid && validation.detectedProject) {
+      // 记录项目上下文不匹配（但不抛出错误，避免中断正常操作）
+      // Log project context mismatch (but don't throw error to avoid interrupting normal operations)
+      const warning = ProjectSession.generateContextMismatchWarning(validation);
+      
+      // 在 MCP 环境中，我们不能使用 console.log，但可以在任务元数据中记录警告
+      // In MCP environment, we can't use console.log, but we can record warning in task metadata
+      // 这里我们选择静默处理，让调用方决定如何处理验证结果
+      // Here we choose to handle silently, let the caller decide how to handle validation results
+    }
+  } catch (error) {
+    // 验证失败时静默处理，不影响正常功能
+    // Handle validation failure silently, don't affect normal functionality
+  }
+}
+
+/**
+ * Get project context validation result for tasks
+ * 获取任务的项目上下文验证结果
+ * 
+ * @param expectedProject The expected project name / 预期的项目名称
+ * @returns Validation result with suggestions / 带建议的验证结果
+ */
+export async function getProjectContextValidation(expectedProject: string): Promise<{
+  isValid: boolean;
+  detectedProject?: string;
+  suggestion?: string;
+  warning?: string;
+}> {
+  try {
+    const tasksFilePath = await getTasksFilePath(false, expectedProject);
+    const { readFile } = await import("fs/promises");
+    const fileContent = await readFile(tasksFilePath, "utf-8");
+    
+    const validation = ProjectSession.validateProjectContext(expectedProject, fileContent);
+    
+    return {
+      ...validation,
+      warning: validation.isValid ? undefined : ProjectSession.generateContextMismatchWarning(validation)
+    };
+  } catch (error) {
+    // 文件不存在或读取失败时，假设有效
+    // When file doesn't exist or read fails, assume valid
+    return { isValid: true };
   }
 }

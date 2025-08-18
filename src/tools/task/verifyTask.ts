@@ -11,6 +11,7 @@ import { getVerifyTaskPrompt } from "../../prompts/index.js";
 // 檢驗任務工具
 // Task verification tool
 export const verifyTaskSchema = z.object({
+  project: z.string().optional().describe("指定要驗證的項目（可選），省略則使用目前會話項目"),
   taskId: z
     .string()
     .regex(UUID_V4_REGEX, {
@@ -43,8 +44,12 @@ export async function verifyTask({
   taskId,
   summary,
   score,
+  project,
 }: z.infer<typeof verifyTaskSchema>) {
-  const task = await getTaskById(taskId);
+  const { ProjectSession } = await import("../../utils/projectSession.js");
+  
+  return await ProjectSession.withProjectContext(project, async () => {
+    const task = await getTaskById(taskId);
 
   if (!task) {
     return {
@@ -73,22 +78,16 @@ export async function verifyTask({
   }
 
   if (score >= 80) {
-    // 更新任務狀態為已完成，並添加摘要
-    // Update task status to completed and add summary
     await updateTaskSummary(taskId, summary);
     await updateTaskStatus(taskId, TaskStatus.COMPLETED);
   }
 
-  // 使用prompt生成器獲取最終prompt
-  // Use prompt generator to get final prompt
   const prompt = await getVerifyTaskPrompt({ task, score, summary });
 
-  return {
-    content: [
-      {
-        type: "text" as const,
-        text: prompt,
-      },
-    ],
-  };
+    return {
+      content: [
+        { type: "text" as const, text: prompt },
+      ],
+    };
+  }); // 结束 withProjectContext
 }

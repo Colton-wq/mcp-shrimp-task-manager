@@ -17,19 +17,22 @@ export const executeTaskSchema = z.object({
     .string()
     .regex(UUID_V4_REGEX, {
       message: "任務ID格式無效，請提供有效的UUID v4格式",
-      // Task ID format is invalid, please provide a valid UUID v4 format
     })
     .describe("待執行任務的唯一標識符，必須是系統中存在的有效任務ID"),
-    // Unique identifier of the task to be executed, must be a valid task ID that exists in the system
+  project: z.string().optional().describe("指定要執行的項目（可選），省略則使用目前會話項目"),
 });
 
 export async function executeTask({
   taskId,
+  project,
 }: z.infer<typeof executeTaskSchema>) {
   try {
-    // 檢查任務是否存在
-    // Check if task exists
-    const task = await getTaskById(taskId);
+    // 使用并发安全的项目上下文管理
+    // Use concurrent-safe project context management
+    const { ProjectSession } = await import("../../utils/projectSession.js");
+    
+    return await ProjectSession.withProjectContext(project, async () => {
+      const task = await getTaskById(taskId);
     if (!task) {
       return {
         content: [
@@ -152,14 +155,15 @@ export async function executeTask({
       dependencyTasks,
     });
 
-    return {
-      content: [
-        {
-          type: "text" as const,
-          text: prompt,
-        },
-      ],
-    };
+      return {
+        content: [
+          {
+            type: "text" as const,
+            text: prompt,
+          },
+        ],
+      };
+    }); // 结束 withProjectContext
   } catch (error) {
     return {
       content: [

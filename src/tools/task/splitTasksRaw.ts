@@ -28,6 +28,7 @@ export const splitTasksRawSchema = z.object({
     .string()
     .optional()
     .describe("任務最終目標，來自之前分析適用於所有任務的通用部分"),
+  project: z.string().optional().describe("指定要寫入的目標項目（可選），省略則使用目前會話項目"),
     // Task final objectives, from previous analysis applicable to the common part of all tasks
 });
 
@@ -134,6 +135,7 @@ export async function splitTasksRaw({
   updateMode,
   tasksRaw,
   globalAnalysisResult,
+  project,
 }: z.infer<typeof splitTasksRawSchema>) {
   // 載入可用的代理
   // Load available agents
@@ -261,7 +263,8 @@ export async function splitTasksRaw({
           createdTasks = await batchCreateOrUpdateTasks(
             convertedTasks,
             "append",
-            globalAnalysisResult
+            globalAnalysisResult,
+            project
           );
           message += `\n成功創建了 ${createdTasks.length} 個新任務。`;
           // Successfully created ${createdTasks.length} new tasks.
@@ -283,7 +286,8 @@ export async function splitTasksRaw({
         createdTasks = await batchCreateOrUpdateTasks(
           convertedTasks,
           updateMode,
-          globalAnalysisResult
+          globalAnalysisResult,
+          project
         );
 
         // 根據不同的更新模式生成消息
@@ -322,6 +326,20 @@ export async function splitTasksRaw({
 
     // 使用prompt生成器獲取最終prompt
     // Use prompt generator to get the final prompt
+    // 檢測潛在的專案衝突並準備建議附註
+    let suggestionsFooter = "";
+    try {
+      const { detectProjectConflicts } = await import("../../utils/projectConflictDetector.js");
+      const conflict = await detectProjectConflicts(allTasks);
+      if (conflict.hasConflicts && conflict.recoverySuggestions?.length) {
+        const top = conflict.recoverySuggestions
+          .slice(0, 2)
+          .map(s => s.type)
+          .join(" or ");
+        suggestionsFooter = `\n\n⚠️ Project conflicts detected. Consider: ${top}`;
+      }
+    } catch {}
+
     const prompt = await getSplitTasksPrompt({
       updateMode,
       createdTasks,
@@ -332,7 +350,7 @@ export async function splitTasksRaw({
       content: [
         {
           type: "text" as const,
-          text: prompt,
+          text: prompt + suggestionsFooter,
         },
       ],
       ephemeral: {

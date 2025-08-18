@@ -5,6 +5,7 @@ import { getGetTaskDetailPrompt } from "../../prompts/index.js";
 // 取得完整任務詳情的參數
 // Get parameters for full task details
 export const getTaskDetailSchema = z.object({
+  project: z.string().optional().describe("指定檢視的項目（可選），省略則使用目前會話項目"),
   taskId: z
     .string()
     .min(1, {
@@ -19,13 +20,17 @@ export const getTaskDetailSchema = z.object({
 // Get complete task details
 export async function getTaskDetail({
   taskId,
+  project,
 }: z.infer<typeof getTaskDetailSchema>) {
   try {
     // 使用 searchTasksWithCommand 替代 getTaskById，實現記憶區任務搜索
     // Use searchTasksWithCommand instead of getTaskById to implement memory area task search
     // 設置 isId 為 true，表示按 ID 搜索；頁碼為 1，每頁大小為 1
     // Set isId to true to indicate search by ID; page number is 1, page size is 1
-    const result = await searchTasksWithCommand(taskId, true, 1, 1);
+    const { ProjectSession } = await import("../../utils/projectSession.js");
+    
+    return await ProjectSession.withProjectContext(project, async () => {
+      const result = await searchTasksWithCommand(taskId, true, 1, 1);
 
     // 檢查是否找到任務
     // Check if task was found
@@ -58,9 +63,10 @@ export async function getTaskDetail({
         {
           type: "text" as const,
           text: prompt,
-        },
-      ],
-    };
+          },
+        ],
+      };
+    }); // 结束 withProjectContext
   } catch (error) {
     // 使用prompt生成器獲取錯誤訊息
     // Use prompt generator to get error message

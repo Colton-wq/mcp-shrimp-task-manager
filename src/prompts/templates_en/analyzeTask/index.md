@@ -13,7 +13,7 @@ After receiving the initial solution, complete the following checks and optimiza
 2. **Duplicate Functionality Detection and Sharing Assessment**
 
    - Use precise search strategies:
-     - Use `codebase_search`, `read_file` or similar tools to search for similar functionality implementations
+     - Use `search_code_desktop-commander`, `read_file_desktop-commander`, and Everything MCP (file search) to search for similar functionality implementations
      - Analyze the purpose and responsibilities of key components and utility classes
    - Check if functionalities in the solution overlap with existing code or other modules
    - If overlapping, determine:

@@ -45,9 +45,9 @@ When searching, keep your **keywords concise and precise**.
 Use **multiple searches**, refining the keywords based on previous results.  
 Whenever you feel **curious or uncertain about a search result**, you must **search again** multiple times to validate the content.
 
-- **Web Search Tools**: For the latest technical info, documentation, tutorials, best practices, such as `web_search` or any web search tool.
-- **Browser Operation Tools**: For browsing recent documentation or sites, such as `use_browser` or any browser automation tool.
-- **Code Search Tools**: For searching implementations, patterns, and examples in the existing project, such as `codebase_search`, `read_file`, or any relevant tool.
+- **Web Search Tools**: Follow Force Search Protocol v2.0 using Exa MCP / tavily-remote MCP / GitHub MCP / Context7.
+- **Codebase Tools**: Prefer Desktop Commander MCP for code/file operations: `read_file_desktop-commander`, `search_code_desktop-commander`, `list_directory_desktop-commander`, `create_directory_desktop-commander`; use Everything MCP for file search.
+- **Prohibited**: VSCode Terminal, `read-terminal`, non-Desktop Commander `launch-process`.
 
 ### 3. Research Execution Flow
 
