@@ -1,4 +1,14 @@
 // 任務狀態枚舉：定義任務在工作流程中的當前階段
+// MCP Response Types for protocol compliance
+export interface MCPTextContent {
+  type: "text";
+  text: string;
+}
+
+export interface MCPResponse {
+  content: MCPTextContent[];
+}
+
 // Task status enumeration: Defines the current stage of tasks in the workflow
 export enum TaskStatus {
   PENDING = "pending", // 已創建但尚未開始執行的任務

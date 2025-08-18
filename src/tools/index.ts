@@ -13,3 +13,7 @@ export * from "./thought/index.js";
 // 導出所有研究工具
 // Export all research tools
 export * from "./research/index.js";
+
+// 導出所有搜索工具
+// Export all search tools
+export * from "./search/index.js";

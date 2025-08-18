@@ -7,29 +7,36 @@ import {
 } from "../../models/taskModel.js";
 import { TaskStatus } from "../../types/index.js";
 import { getVerifyTaskPrompt } from "../../prompts/index.js";
+import {
+  createSuccessResponse,
+  createNotFoundError,
+  createValidationError,
+  createInternalError,
+  createStatusResponse,
+} from "../../utils/mcpResponse.js";
 
 // 檢驗任務工具
 // Task verification tool
 export const verifyTaskSchema = z.object({
-  project: z.string().optional().describe("指定要驗證的項目（可選），省略則使用目前會話項目"),
+  project: z
+    .string()
+    .optional()
+    .describe("Target project context for task verification. OPTIONAL - defaults to current session project if not specified. USE WHEN: working with multiple projects, need to verify task in specific project context. EXAMPLE: 'my-web-app', 'backend-service'. LEAVE EMPTY: to use current session project."),
   taskId: z
     .string()
     .regex(UUID_V4_REGEX, {
-      message: "任務ID格式無效，請提供有效的UUID v4格式",
-      // message: "Invalid task ID format, please provide a valid UUID v4 format",
+      message: "Invalid task ID format. Must be a valid UUID v4 format (8-4-4-4-12 hexadecimal digits). EXAMPLE: 'a1b2c3d4-e5f6-4789-a012-b3c4d5e6f789'. Use list_tasks or query_task to find valid task IDs. COMMON ISSUE: Ensure no extra spaces or characters around the UUID.",
     })
-    .describe("待驗證任務的唯一標識符，必須是系統中存在的有效任務ID"),
-    // .describe("Unique identifier of the task to be verified, must be a valid task ID that exists in the system")
+    .describe("Unique identifier of the task to verify and potentially complete. MUST BE: valid UUID v4 format from existing task in system. HOW TO GET: use list_tasks to see all tasks, or query_task to search by name/description. EXAMPLE: 'a1b2c3d4-e5f6-4789-a012-b3c4d5e6f789'. VALIDATION: 8-4-4-4-12 hexadecimal pattern."),
   summary: z
     .string()
     .min(30, {
-      message: "最少30個字",
-      // message: "Minimum 30 characters",
+      message: "Summary must be at least 30 characters. FOR SCORE ≥80: Provide task completion summary with implementation results and key decisions. FOR SCORE <80: List specific issues and correction suggestions. EXAMPLE (completion): 'Successfully implemented JWT authentication with bcrypt password hashing, Redis session storage, and comprehensive error handling.' EXAMPLE (issues): 'Missing input validation on user registration endpoint, password strength requirements not implemented, error messages expose sensitive information.'",
     })
-    .describe(
-      "當分數高於或等於 80分時代表任務完成摘要，簡潔描述實施結果和重要決策，當分數低於 80分時代表缺失或需要修正的部分說明，最少30個字"
-      // "When score is 80 or above, this represents task completion summary, briefly describing implementation results and important decisions. When score is below 80, this represents missing or parts that need correction, minimum 30 characters"
-    ),
+    .describe("Task verification summary based on score. MINIMUM 30 characters. " +
+      "IF SCORE ≥80: Provide completion summary describing implementation results, key decisions, and achievements. " +
+      "IF SCORE <80: List specific issues, missing requirements, and correction suggestions. " +
+      "PURPOSE: Document verification outcome and guide next steps."),
   score: z
     .number()
     .min(0, { message: "分數不能小於0" })
@@ -52,42 +59,44 @@ export async function verifyTask({
     const task = await getTaskById(taskId);
 
   if (!task) {
-    return {
-      content: [
-        {
-          type: "text" as const,
-          text: `## 系統錯誤\n\n找不到ID為 \`${taskId}\` 的任務。請使用「list_tasks」工具確認有效的任務ID後再試。`,
-          // text: `## System Error\n\nCannot find task with ID \`${taskId}\`. Please use the "list_tasks" tool to confirm a valid task ID and try again.`,
-        },
-      ],
-      isError: true,
-    };
+    return createNotFoundError(
+      "Task",
+      taskId,
+      "Use list_tasks to see all available tasks, or query_task to search by name/description"
+    );
   }
 
   if (task.status !== TaskStatus.IN_PROGRESS) {
-    return {
-      content: [
-        {
-          type: "text" as const,
-          text: `## 狀態錯誤\n\n任務 "${task.name}" (ID: \`${task.id}\`) 當前狀態為 "${task.status}"，不處於進行中狀態，無法進行檢驗。\n\n只有狀態為「進行中」的任務才能進行檢驗。請先使用「execute_task」工具開始任務執行。`,
-          // text: `## Status Error\n\nTask "${task.name}" (ID: \`${task.id}\`) current status is "${task.status}", not in progress state, cannot be verified.\n\nOnly tasks with "In Progress" status can be verified. Please use the "execute_task" tool to start task execution first.`,
-        },
-      ],
-      isError: true,
-    };
+    return createValidationError(
+      "task status",
+      task.status,
+      "Task must be in IN_PROGRESS status to be verified",
+      "Use execute_task to start the task first, then verify when implementation is complete"
+    );
   }
+
+  // 状态跟踪：开始验证
+  const verificationStarted = createStatusResponse(
+    "Task Verification",
+    "started",
+    `Verifying task "${task.name}" with score ${score}`
+  );
 
   if (score >= 80) {
     await updateTaskSummary(taskId, summary);
     await updateTaskStatus(taskId, TaskStatus.COMPLETED);
+    
+    // 状态跟踪：任务完成
+    const completionStatus = createStatusResponse(
+      "Task Completion",
+      "completed",
+      `Task "${task.name}" successfully completed with score ${score}/100`,
+      100
+    );
   }
 
   const prompt = await getVerifyTaskPrompt({ task, score, summary });
 
-    return {
-      content: [
-        { type: "text" as const, text: prompt },
-      ],
-    };
+  return createSuccessResponse(prompt);
   }); // 结束 withProjectContext
 }

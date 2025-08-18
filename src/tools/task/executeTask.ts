@@ -6,9 +6,17 @@ import {
   canExecuteTask,
   assessTaskComplexity,
 } from "../../models/taskModel.js";
-import { TaskStatus, Task } from "../../types/index.js";
+import { TaskStatus, Task, TaskComplexityLevel, TaskComplexityAssessment } from "../../types/index.js";
 import { getExecuteTaskPrompt } from "../../prompts/index.js";
 import { loadTaskRelatedFiles } from "../../utils/fileLoader.js";
+import {
+  createSuccessResponse,
+  createNotFoundError,
+  createDependencyError,
+  createInternalError,
+  createStatusResponse,
+  withErrorHandling,
+} from "../../utils/mcpResponse.js";
 
 // 執行任務工具
 // Execute task tool
@@ -16,10 +24,13 @@ export const executeTaskSchema = z.object({
   taskId: z
     .string()
     .regex(UUID_V4_REGEX, {
-      message: "任務ID格式無效，請提供有效的UUID v4格式",
+      message: "Invalid task ID format. Must be a valid UUID v4 format (8-4-4-4-12 hexadecimal digits). EXAMPLE: 'a1b2c3d4-e5f6-4789-a012-b3c4d5e6f789'. Use list_tasks or query_task to find valid task IDs. COMMON ISSUE: Ensure no extra spaces or characters around the UUID.",
     })
-    .describe("待執行任務的唯一標識符，必須是系統中存在的有效任務ID"),
-  project: z.string().optional().describe("指定要執行的項目（可選），省略則使用目前會話項目"),
+    .describe("Unique identifier of the task to execute. MUST BE: valid UUID v4 format from existing task in system. HOW TO GET: use list_tasks to see all tasks, or query_task to search by name/description. EXAMPLE: 'a1b2c3d4-e5f6-4789-a012-b3c4d5e6f789'. VALIDATION: 8-4-4-4-12 hexadecimal pattern."),
+  project: z
+    .string()
+    .optional()
+    .describe("Target project context for task execution. OPTIONAL - defaults to current session project if not specified. USE WHEN: working with multiple projects, need to specify different project context. EXAMPLE: 'my-web-app', 'backend-api', 'mobile-client'. LEAVE EMPTY: to use current session project."),
 });
 
 export async function executeTask({
@@ -34,37 +45,19 @@ export async function executeTask({
     return await ProjectSession.withProjectContext(project, async () => {
       const task = await getTaskById(taskId);
     if (!task) {
-      return {
-        content: [
-          {
-            type: "text" as const,
-            text: `找不到ID為 \`${taskId}\` 的任務。請確認ID是否正確。`,
-            // Cannot find task with ID `${taskId}`. Please confirm if the ID is correct.
-          },
-        ],
-      };
+      return createNotFoundError(
+        "Task",
+        taskId,
+        "Use list_tasks to see all available tasks, or query_task to search by name/description"
+      );
     }
 
     // 檢查任務是否可以執行（依賴任務都已完成）
     // Check if task can be executed (all dependency tasks are completed)
     const executionCheck = await canExecuteTask(taskId);
     if (!executionCheck.canExecute) {
-      const blockedByTasksText =
-        executionCheck.blockedBy && executionCheck.blockedBy.length > 0
-          ? `被以下未完成的依賴任務阻擋: ${executionCheck.blockedBy.join(", ")}`
-          // Blocked by the following incomplete dependency tasks: ${executionCheck.blockedBy.join(", ")}
-          : "無法確定阻擋原因";
-          // Unable to determine blocking reason
-
-      return {
-        content: [
-          {
-            type: "text" as const,
-            text: `任務 "${task.name}" (ID: \`${taskId}\`) 目前無法執行。${blockedByTasksText}`,
-            // Task "${task.name}" (ID: `${taskId}`) cannot be executed currently. ${blockedByTasksText}
-          },
-        ],
-      };
+      const blockedBy = executionCheck.blockedBy || [];
+      return createDependencyError(taskId, blockedBy);
     }
 
     // 如果任務已經標記為「進行中」，提示用戶
@@ -103,11 +96,16 @@ export async function executeTask({
     // Assess task complexity
     const complexityResult = await assessTaskComplexity(taskId);
 
+    // 智能路径建议
+    // Smart path recommendations
+    const pathRecommendation = generatePathRecommendation(complexityResult, task);
+
     // 將複雜度結果轉換為適當的格式
     // Convert complexity results to appropriate format
     const complexityAssessment = complexityResult
       ? {
           level: complexityResult.level,
+          pathRecommendation,
           metrics: {
             descriptionLength: complexityResult.metrics.descriptionLength,
             dependenciesCount: complexityResult.metrics.dependenciesCount,
@@ -153,28 +151,90 @@ export async function executeTask({
       complexityAssessment,
       relatedFilesSummary,
       dependencyTasks,
+      pathRecommendation,
     });
 
-      return {
-        content: [
-          {
-            type: "text" as const,
-            text: prompt,
-          },
-        ],
-      };
+      return createSuccessResponse(prompt);
     }); // 结束 withProjectContext
   } catch (error) {
-    return {
-      content: [
-        {
-          type: "text" as const,
-          text: `執行任務時發生錯誤: ${
-            error instanceof Error ? error.message : String(error)
-          }`,
-          // Error occurred while executing task: ${error instanceof Error ? error.message : String(error)}
-        },
-      ],
-    };
+    return createInternalError(
+      "task execution",
+      error instanceof Error ? error : new Error(String(error))
+    );
+  }
+}
+
+/**
+ * Generate smart path recommendation based on task complexity
+ */
+function generatePathRecommendation(
+  complexityResult: TaskComplexityAssessment | null,
+  task: Task
+): string {
+  if (!complexityResult) {
+    return "📋 **Standard Path Recommended**: Use plan_task → execute_task for structured approach";
+  }
+
+  const { level } = complexityResult;
+  const isSmartRoutingEnabled = process.env.MCP_ENABLE_SMART_ROUTING === "true";
+
+  if (!isSmartRoutingEnabled) {
+    return "";
+  }
+
+  switch (level) {
+    case TaskComplexityLevel.LOW:
+      return `🚀 **Fast Path Detected**: This is a simple task that can be executed directly.
+      
+**Recommended Approach:**
+- ✅ You chose the optimal path by calling execute_task directly
+- ⚡ This should save ~60% processing time compared to full analysis cycle
+- 🎯 Focus on implementation rather than extensive planning
+
+**Why Fast Path:**
+- Low complexity indicators detected
+- Straightforward implementation expected
+- Minimal dependencies and risks`;
+
+    case TaskComplexityLevel.MEDIUM:
+      return `📋 **Standard Path Recommended**: Medium complexity detected.
+
+**Optimal Sequence:**
+1. ✅ plan_task → Get structured approach
+2. ➡️ execute_task → Implement solution
+
+**Current Status:**
+- ⚠️ You called execute_task directly (Fast Path)
+- 💡 Consider using plan_task first for better results
+- 🔄 You can still proceed, but planning would help
+
+**Why Standard Path:**
+- Medium complexity requires structured approach
+- Planning reduces implementation risks
+- Better task breakdown and dependency management`;
+
+    case TaskComplexityLevel.HIGH:
+    case TaskComplexityLevel.VERY_HIGH:
+      return `🔬 **Deep Path Strongly Recommended**: High complexity detected.
+
+**Optimal Sequence:**
+1. 📋 plan_task → Initial planning and scope
+2. 🔍 analyze_task → Deep technical analysis  
+3. 🤔 reflect_task → Quality review and optimization
+4. ✂️ split_tasks → Break into manageable subtasks
+5. ⚡ execute_task → Implement individual tasks
+
+**Current Status:**
+- ⚠️ You called execute_task directly (Fast Path)
+- 🚨 High risk of incomplete or suboptimal implementation
+- 🔄 Strongly consider starting with plan_task
+
+**Why Deep Path:**
+- High complexity requires thorough analysis
+- Risk of missing critical requirements
+- Better quality and maintainability with full cycle`;
+
+    default:
+      return "📋 **Standard Path Recommended**: Use plan_task → execute_task for structured approach";
   }
 }

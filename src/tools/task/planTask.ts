@@ -12,22 +12,18 @@ export const planTaskSchema = z.object({
   description: z
     .string()
     .min(10, {
-      message: "任務描述不能少於10個字符，請提供更詳細的描述以確保任務目標明確",
-      // Task description cannot be less than 10 characters, please provide a more detailed description to ensure clear task objectives
+      message: "Task description must be at least 10 characters. Please provide detailed description including: (1) Clear objectives, (2) Background context, (3) Expected outcomes, (4) Technical scope. Example: 'Implement user authentication system with JWT tokens, including login/logout functionality and role-based access control for a React web application.'",
     })
-    .describe("完整詳細的任務問題描述，應包含任務目標、背景及預期成果"),
-    // Complete and detailed task problem description, should include task objectives, background and expected results
+    .describe("Complete detailed task problem description. REQUIRED ELEMENTS: task objectives, background context, expected outcomes, technical scope. MINIMUM 10 characters. EXAMPLE: 'Build REST API for user management with CRUD operations, authentication middleware, and PostgreSQL database integration.'"),
   requirements: z
     .string()
     .optional()
-    .describe("任務的特定技術要求、業務約束條件或品質標準（選填）"),
-    // Specific technical requirements, business constraints or quality standards for the task (optional)
+    .describe("Specific technical requirements, business constraints, or quality standards. OPTIONAL but recommended for complex tasks. EXAMPLES: 'Must support 1000+ concurrent users', 'Follow GDPR compliance', 'Use TypeScript with strict mode', 'Implement comprehensive error handling'"),
   existingTasksReference: z
     .boolean()
     .optional()
     .default(false)
-    .describe("是否參考現有任務作為規劃基礎，用於任務調整和延續性規劃"),
-    // Whether to reference existing tasks as a planning foundation, used for task adjustment and continuity planning
+    .describe("OPTIONAL - Whether to reference existing tasks for continuity planning. SET TO TRUE when: extending existing features, maintaining consistency with previous work, building upon completed tasks. SET TO FALSE for: new independent projects, fresh starts, unrelated features. DEFAULT: false"),
 });
 
 export async function planTask({

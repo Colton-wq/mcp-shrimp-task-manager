@@ -47,12 +47,15 @@ import {
   initProjectRulesSchema,
   researchMode,
   researchModeSchema,
+  forceSearchProtocol,
+  forceSearchProtocolSchema,
   listProjects,
   listProjectsSchema,
   switchProject,
   switchProjectSchema,
   validateProjectContext,
   validateProjectContextSchema,
+
 } from "./tools/index.js";
 
 async function main() {
@@ -199,7 +202,7 @@ async function main() {
           },
           {
             name: "switch_project",
-            description: "Switch active project context for subsequent tool calls.",
+            description: "Switch active project context with intelligent naming and conflict detection. Automatically creates projects if needed and provides naming suggestions for AI agents.",
             inputSchema: zodToJsonSchema(switchProjectSchema),
           },
           {
@@ -214,6 +217,14 @@ async function main() {
             ),
             inputSchema: zodToJsonSchema(researchModeSchema),
           },
+          {
+            name: "force_search_protocol",
+            description: await loadPromptFromTemplate(
+              "toolsDescription/forceSearchProtocol.md"
+            ),
+            inputSchema: zodToJsonSchema(forceSearchProtocolSchema),
+          },
+
         ],
       };
     });
@@ -392,6 +403,18 @@ async function main() {
                 );
               }
               return await researchMode(parsedArgs.data);
+
+            case "force_search_protocol":
+              parsedArgs = await forceSearchProtocolSchema.safeParseAsync(
+                request.params.arguments
+              );
+              if (!parsedArgs.success) {
+                throw new Error(
+                  `Invalid arguments for tool ${request.params.name}: ${parsedArgs.error.message}`
+                );
+              }
+              return await forceSearchProtocol(parsedArgs.data);
+
             default:
               throw new Error(`Tool ${request.params.name} does not exist`);
           }

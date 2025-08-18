@@ -1,1 +1,19 @@
-Retrieve the instructional guidance for a specific task. You will complete the programming task based on this guidance. You must strictly follow the feedback and instructions provided by the tool — it is designed to **guide you toward perfect task completion, not to execute the task for you**. Severe Warning: Calling the executeTask tool does not mean you have completed the task. You must follow the step-by-step guidance returned by the tool to complete the task properly.
+Retrieve instructional guidance for specific task execution. Provides step-by-step guidance to complete programming tasks properly.
+
+## When to Use
+- Ready to execute a specific task from the task list
+- Need detailed guidance for task implementation
+- Have identified the task to work on next
+
+## Parameters
+- `taskId` (required): Unique identifier of the task to execute (UUID v4 format)
+- `project` (optional): Target project context (defaults to current session project)
+
+## Expected Output
+Detailed execution guidance with step-by-step implementation instructions, code examples, and validation requirements.
+
+## Error Handling
+- Invalid task ID: Provides UUID format requirements
+- Task not found: Suggests using query_task to find correct ID
+- Execution blocked: Lists required prerequisites
+

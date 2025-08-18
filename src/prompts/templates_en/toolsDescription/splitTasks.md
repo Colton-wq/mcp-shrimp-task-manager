@@ -1,22 +1,20 @@
-Break down complex tasks into independent subtasks and write them to the specified or current project.
+Break down complex tasks into independent subtasks and write them to the task management system. Transforms analysis results into executable work items.
 
-- Action-oriented: Split tasks into structured subtasks
-- Description: Parse `tasksRaw` and write tasks according to `updateMode` into the specified or current project; supports agent matching and dependency resolution.
-- Parameters:
-  - updateMode: 'append' | 'overwrite' | 'selective' | 'clearAllTasks'
-  - tasksRaw: string JSON
-  - globalAnalysisResult?: string
-  - project?: string target project (optional)
-- Constraints: Writes are file-locked; large payloads should be split; duplicate names trigger selective update behavior
-- Output: Structured result and optional conflict detection suggestions
-- Errors: JSON-RPC standard errors; JSON parse errors; validation errors; lock timeouts
+## When to Use
+- After completing reflection and having validated analysis
+- Need to create actionable tasks from complex requirements
+- Breaking down large features into manageable work items
 
-## 1. Granularity Control (Required Reading)
-- Minimum unit: 1–2 days/task; Max 10 items/batch; Depth ≤3
-- Length: ≤ 5,000 chars per call; split otherwise
+## Parameters
+- `updateMode` (required): Task update strategy (append/overwrite/selective/clearAllTasks)
+- `tasksRaw` (required): Structured task list in JSON format with proper escaping
+- `globalAnalysisResult` (optional): Overall analysis summary applicable to all tasks
+- `project` (optional): Target project name (defaults to current session project)
 
-## 2. Dependencies & Priority
-- Use `dependencies` to build the graph and compute the critical path
+## Expected Output
+Task creation confirmation with dependency validation and conflict detection results.
 
-## 3. Strict JSON Rules
-- No comments; proper escaping required
+## Error Handling
+- JSON parse error: Provides JSON structure requirements
+- Validation error: Specifies required fields
+- Dependency conflict: Provides resolution steps

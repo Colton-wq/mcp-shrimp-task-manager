@@ -4,17 +4,20 @@ export default defineConfig({
   test: {
     globals: true,
     environment: 'node',
-    include: ['src/**/*.test.ts'],
+    include: ['src/tests/**/*.test.ts'],
+    exclude: ['node_modules', 'dist'],
     coverage: {
       provider: 'v8',
       reporter: ['text', 'json', 'html'],
-      exclude: [
-        'node_modules/',
-        'dist/',
-        'src/**/*.test.ts',
-        'src/types/',
-        'tools/'
-      ]
+      include: ['src/**/*.ts'],
+      exclude: ['src/tests/**', 'src/**/*.test.ts', 'src/**/*.d.ts']
+    },
+    testTimeout: 10000,
+    hookTimeout: 10000
+  },
+  resolve: {
+    alias: {
+      '@': '/src'
     }
   }
 });

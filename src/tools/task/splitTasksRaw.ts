@@ -28,7 +28,8 @@ export const splitTasksRawSchema = z.object({
     .string()
     .optional()
     .describe("任務最終目標，來自之前分析適用於所有任務的通用部分"),
-  project: z.string().optional().describe("指定要寫入的目標項目（可選），省略則使用目前會話項目"),
+  project: z.string().optional().describe("Target project name. If project does not exist, it will be created automatically with intelligent naming based on task content"),
+  projectDescription: z.string().optional().describe("Project description for intelligent categorization and naming when creating new projects"),
     // Task final objectives, from previous analysis applicable to the common part of all tasks
 });
 
@@ -136,7 +137,46 @@ export async function splitTasksRaw({
   tasksRaw,
   globalAnalysisResult,
   project,
+  projectDescription,
 }: z.infer<typeof splitTasksRawSchema>) {
+  // Handle intelligent project creation/switching if specified
+  // 处理智能项目创建/切换（如果指定）
+  if (project) {
+    const { ProjectSession } = await import("../../utils/projectSession.js");
+    const fs = await import("fs/promises");
+    const path = await import("path");
+
+    // Clean project name
+    const cleanProject = ProjectSession.sanitizeProjectName(project);
+
+    // Check if project exists
+    try {
+      const { getDataDir } = await import("../../utils/paths.js");
+      const dataDir = await getDataDir(true);
+      const parentDir = path.dirname(dataDir);
+      const projectPath = path.join(parentDir, cleanProject);
+
+      try {
+        await fs.access(projectPath);
+        // Project exists, switch to it
+        ProjectSession.setCurrentProject(cleanProject);
+      } catch {
+        // Project doesn't exist, create it
+        await fs.mkdir(projectPath, { recursive: true });
+
+        // Create basic tasks.json
+        const tasksFile = path.join(projectPath, 'tasks.json');
+        await fs.writeFile(tasksFile, JSON.stringify({ tasks: [] }, null, 2));
+
+        // Switch to new project
+        ProjectSession.setCurrentProject(cleanProject);
+      }
+    } catch (error) {
+      // If project handling fails, continue with current project
+      // 如果项目处理失败，继续使用当前项目
+    }
+  }
+
   // 載入可用的代理
   // Load available agents
   let availableAgents: any[] = [];

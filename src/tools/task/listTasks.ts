@@ -16,13 +16,15 @@ export async function listTasks({ status, project }: z.infer<typeof listTasksSch
   const { ProjectSession } = await import("../../utils/projectSession.js");
 
   return await ProjectSession.withProjectContext(project, async () => {
-    const tasks = await getAllTasks(project);
+    // 确保使用正确的项目上下文，优先使用传入的项目参数，否则使用当前项目
+    // Ensure correct project context, prioritize passed project parameter, otherwise use current project
+    const effectiveProject = project || ProjectSession.getCurrentProject();
+    const tasks = await getAllTasks(effectiveProject);
 
     // 验证项目上下文一致性
     // Validate project context consistency
     const { getProjectContextValidation } = await import("../../models/taskModel.js");
-    const currentProject = project || ProjectSession.getCurrentProject();
-    const validation = await getProjectContextValidation(currentProject);
+    const validation = await getProjectContextValidation(effectiveProject);
   let filteredTasks = tasks;
   switch (status) {
     case "all":
@@ -96,7 +98,6 @@ export async function listTasks({ status, project }: z.infer<typeof listTasksSch
   }
 
   // 附加項目元數據，幫助AI識別當前內容所屬項目
-  const effectiveProject = project ?? currentProject;
   const textWithMeta = ProjectSession.addProjectMetadata(prompt + suggestionsFooter + contextWarning, effectiveProject);
 
   return {

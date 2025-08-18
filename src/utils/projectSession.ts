@@ -229,7 +229,7 @@ export class ProjectSession {
    * Sanitize project name for filesystem safety
    * 清理项目名称以确保文件系统安全
    */
-  private static sanitizeProjectName(projectName: string): string {
+  public static sanitizeProjectName(projectName: string): string {
     // 移除或替换不安全的字符，保留字母、数字、连字符和下划线
     // Remove or replace unsafe characters, keep letters, numbers, hyphens and underscores
     return projectName

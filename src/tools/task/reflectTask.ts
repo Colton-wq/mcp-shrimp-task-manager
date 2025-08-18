@@ -7,21 +7,15 @@ export const reflectTaskSchema = z.object({
   summary: z
     .string()
     .min(10, {
-      message: "任務摘要不能少於10個字符，請提供更詳細的描述以確保任務目標明確",
-      // Task summary cannot be less than 10 characters, please provide more detailed description to ensure task objectives are clear
+      message: "Task summary must be at least 10 characters and maintain consistency with analysis phase. Please provide structured summary that matches previous analysis to ensure continuity. EXAMPLE: 'User authentication system analysis - JWT implementation with role-based access control and security considerations.'",
     })
-    .describe("結構化的任務摘要，保持與分析階段一致以確保連續性"),
-    // Structured task summary, maintaining consistency with analysis phase to ensure continuity
+    .describe("Structured task summary maintaining consistency with analysis phase for continuity. MUST MATCH: previous analysis summary to ensure workflow coherence. MINIMUM 10 characters. PURPOSE: link reflection to specific analysis results. EXAMPLE: 'E-commerce API design analysis - microservices architecture with event-driven communication patterns.'"),
   analysis: z
     .string()
     .min(100, {
-      message: "技術分析內容不夠詳盡，請提供完整的技術分析和實施方案",
-      // Technical analysis content is not detailed enough, please provide complete technical analysis and implementation plan
+      message: "Technical analysis must be at least 100 characters with comprehensive details. Please provide complete analysis including: (1) Technical details and specifications, (2) Dependency components and integrations, (3) Implementation approach and strategy, (4) Risk assessment and mitigation, (5) Performance considerations. Use pseudocode format if code examples needed.",
     })
-    .describe(
-      "完整詳盡的技術分析結果，包括所有技術細節、依賴組件和實施方案，如果需要提供程式碼請使用 pseudocode 格式且僅提供高級邏輯流程和關鍵步驟避免完整代碼"
-      // Complete and detailed technical analysis results, including all technical details, dependent components and implementation plans, if code is needed please use pseudocode format and only provide high-level logic flow and key steps avoiding complete code
-    ),
+    .describe("Complete detailed technical analysis results with all technical details, dependencies, and implementation approach. MINIMUM 100 characters. MUST INCLUDE: technical specifications, dependency analysis, implementation strategy, risk assessment, performance considerations. IF CODE NEEDED: use pseudocode format with high-level logic flow only, avoid complete code implementation. EXAMPLE: 'Comprehensive analysis of user authentication system: JWT token implementation with refresh mechanism, bcrypt password hashing, role-based middleware, Redis session storage, rate limiting for security, and OAuth2 integration for social login.'"),
 });
 
 export async function reflectTask({

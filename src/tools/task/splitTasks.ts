@@ -15,8 +15,7 @@ export const splitTasksSchema = z.object({
   updateMode: z
     .enum(["append", "overwrite", "selective", "clearAllTasks"])
     .describe(
-      "任務更新模式選擇：'append'(保留所有現有任務並添加新任務)、'overwrite'(清除所有未完成任務並完全替換，保留已完成任務)、'selective'(智能更新：根據任務名稱匹配更新現有任務，保留不在列表中的任務，推薦用於任務微調)、'clearAllTasks'(清除所有任務並創建備份)。\n預設為'clearAllTasks'模式，只有用戶要求變更或修改計劃內容才使用其他模式"
-      // Task update mode selection: 'append' (keep all existing tasks and add new tasks), 'overwrite' (clear all incomplete tasks and completely replace, keep completed tasks), 'selective' (intelligent update: update existing tasks based on task name matching, keep tasks not in the list, recommended for task fine-tuning), 'clearAllTasks' (clear all tasks and create backup). Default is 'clearAllTasks' mode, only use other modes when user requests changes or modifications to plan content
+      "Task update strategy for managing existing tasks. CHOOSE BASED ON INTENT: 'append' = add new tasks while keeping all existing ones (use for expanding project scope), 'overwrite' = replace incomplete tasks but keep completed ones (use for major plan changes), 'selective' = smart update by task name matching, preserve unlisted tasks (use for minor adjustments), 'clearAllTasks' = clear all tasks and create backup (use for fresh start). DEFAULT: 'clearAllTasks' for new projects. CHANGE ONLY when user explicitly requests modifications to existing plan."
     ),
   tasks: z
     .array(
@@ -24,19 +23,15 @@ export const splitTasksSchema = z.object({
         name: z
           .string()
           .max(100, {
-            message: "任務名稱過長，請限制在100個字符以內",
-            // Task name is too long, please limit to within 100 characters
+            message: "Task name too long (max 100 characters). Please provide concise but descriptive name that clearly indicates the task purpose. GOOD EXAMPLES: 'Implement user authentication API', 'Design database schema', 'Setup CI/CD pipeline'. AVOID: overly long descriptions, vague names like 'Task 1' or 'Fix stuff'.",
           })
-          .describe("簡潔明確的任務名稱，應能清晰表達任務目的"),
-          // Concise and clear task name, should clearly express the task purpose
+          .describe("Concise and clear task name that clearly expresses the task purpose. MAXIMUM 100 characters. SHOULD BE: specific, actionable, and descriptive. EXAMPLES: 'Implement JWT authentication middleware', 'Create user registration form', 'Setup PostgreSQL database connection'. AVOID: vague names, overly technical jargon, or generic descriptions."),
         description: z
           .string()
           .min(10, {
-            message: "任務描述過短，請提供更詳細的內容以確保理解",
-            // Task description is too short, please provide more detailed content to ensure understanding
+            message: "Task description too short (minimum 10 characters). Please provide detailed description including: (1) Implementation points and key requirements, (2) Technical details and specifications, (3) Acceptance criteria and success metrics. EXAMPLE: 'Implement user authentication system with JWT tokens, including login/logout endpoints, password hashing with bcrypt, and role-based access control middleware.'",
           })
-          .describe("詳細的任務描述，包含實施要點、技術細節和驗收標準"),
-          // Detailed task description, including implementation points, technical details and acceptance criteria
+          .describe("Detailed task description with implementation points, technical details, and acceptance criteria. MINIMUM 10 characters. MUST INCLUDE: specific requirements, technical approach, success criteria, any constraints or considerations. EXAMPLE: 'Create responsive user dashboard with React components, integrate with REST API for data fetching, implement real-time updates using WebSocket, and ensure mobile compatibility.'"),
         implementationGuide: z
           .string()
           .describe(
@@ -121,14 +116,62 @@ export const splitTasksSchema = z.object({
     .optional()
     .describe("任務最終目標，來自之前分析適用於所有任務的通用部分"),
     // Task final objectives, from previous analysis applicable to the common part of all tasks
+  project: z
+    .string()
+    .optional()
+    .describe("Target project name. If project does not exist, it will be created automatically with intelligent naming based on task content"),
+  projectDescription: z
+    .string()
+    .optional()
+    .describe("Project description for intelligent categorization and naming when creating new projects")
 });
 
 export async function splitTasks({
   updateMode,
   tasks,
   globalAnalysisResult,
+  project,
+  projectDescription,
 }: z.infer<typeof splitTasksSchema>) {
   try {
+    // Handle intelligent project creation/switching if specified
+    // 处理智能项目创建/切换（如果指定）
+    if (project) {
+      const { ProjectSession } = await import("../../utils/projectSession.js");
+      const fs = await import("fs/promises");
+      const path = await import("path");
+
+      // Clean project name
+      const cleanProject = ProjectSession.sanitizeProjectName(project);
+
+      // Check if project exists
+      try {
+        const { getDataDir } = await import("../../utils/paths.js");
+        const dataDir = await getDataDir(true);
+        const parentDir = path.dirname(dataDir);
+        const projectPath = path.join(parentDir, cleanProject);
+
+        try {
+          await fs.access(projectPath);
+          // Project exists, switch to it
+          ProjectSession.setCurrentProject(cleanProject);
+        } catch {
+          // Project doesn't exist, create it
+          await fs.mkdir(projectPath, { recursive: true });
+
+          // Create basic tasks.json
+          const tasksFile = path.join(projectPath, 'tasks.json');
+          await fs.writeFile(tasksFile, JSON.stringify({ tasks: [] }, null, 2));
+
+          // Switch to new project
+          ProjectSession.setCurrentProject(cleanProject);
+        }
+      } catch (error) {
+        // If project handling fails, continue with current project
+        // 如果项目处理失败，继续使用当前项目
+      }
+    }
+
     // 載入可用的代理
     // Load available agents
     let availableAgents: any[] = [];

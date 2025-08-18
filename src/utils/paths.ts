@@ -74,26 +74,24 @@ export async function getDataDir(forceRefresh = false, projectOverride?: string)
     }
   }
 
-  // 如果没有服务器或项目上下文获取失败，但有项目覆盖参数，使用简化的项目隔离逻辑
-  // If no server or project context failed, but have project override, use simplified project isolation logic
-  if (projectOverride || !server) {
-    const currentProject = projectOverride || ProjectSession.getCurrentProject();
-    if (currentProject && currentProject !== 'main') {
-      // 使用项目特定的数据目录
-      // Use project-specific data directory
-      const sanitizedProjectName = currentProject
-        .replace(/[<>:"/\\|?*]/g, '_')
-        .replace(/\s+/g, '_')
-        .replace(/_{2,}/g, '_')
-        .replace(/^_+|_+$/g, '')
-        .substring(0, 100);
+  // 如果项目上下文获取失败，使用简化的项目隔离逻辑
+  // If project context acquisition failed, use simplified project isolation logic
+  const currentProject = projectOverride || ProjectSession.getCurrentProject();
+  if (currentProject && currentProject !== 'main') {
+    // 使用项目特定的数据目录
+    // Use project-specific data directory
+    const sanitizedProjectName = currentProject
+      .replace(/[<>:"/\\|?*]/g, '_')
+      .replace(/\s+/g, '_')
+      .replace(/_{2,}/g, '_')
+      .replace(/^_+|_+$/g, '')
+      .substring(0, 100);
 
-      if (process.env.DATA_DIR && path.isAbsolute(process.env.DATA_DIR)) {
-        const projectDataDir = path.join(process.env.DATA_DIR, sanitizedProjectName);
-        cachedDataDir = projectDataDir;
-        lastRootsCall = now;
-        return cachedDataDir;
-      }
+    if (process.env.DATA_DIR && path.isAbsolute(process.env.DATA_DIR)) {
+      const projectDataDir = path.join(process.env.DATA_DIR, sanitizedProjectName);
+      cachedDataDir = projectDataDir;
+      lastRootsCall = now;
+      return cachedDataDir;
     }
   }
 

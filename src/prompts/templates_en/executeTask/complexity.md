@@ -13,3 +13,7 @@
 ### Processing Recommendations
 
 {recommendation}
+
+### Smart Path Recommendation
+
+{pathRecommendation}

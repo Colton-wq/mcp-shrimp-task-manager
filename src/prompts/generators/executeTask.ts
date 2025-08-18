@@ -34,6 +34,7 @@ export interface ExecuteTaskPromptParams {
   complexityAssessment?: ComplexityAssessment;
   relatedFilesSummary?: string;
   dependencyTasks?: Task[];
+  pathRecommendation?: string;
 }
 
 /**
@@ -71,7 +72,7 @@ function getComplexityStyle(level: string): string {
 export async function getExecuteTaskPrompt(
   params: ExecuteTaskPromptParams
 ): Promise<string> {
-  const { task, complexityAssessment, relatedFilesSummary, dependencyTasks } =
+  const { task, complexityAssessment, relatedFilesSummary, dependencyTasks, pathRecommendation } =
     params;
 
   const notesTemplate = await loadPromptFromTemplate("executeTask/notes.md");
@@ -165,6 +166,17 @@ export async function getExecuteTaskPrompt(
       descriptionLength: complexityAssessment.metrics.descriptionLength,
       dependenciesCount: complexityAssessment.metrics.dependenciesCount,
       recommendation: recommendationContent,
+      pathRecommendation: pathRecommendation || "",
+    });
+  } else {
+    // 即使没有复杂度评估，也要显示路径推荐
+    complexityPrompt = generatePrompt(complexityTemplate, {
+      level: "未知",
+      complexityStyle: "",
+      descriptionLength: 0,
+      dependenciesCount: 0,
+      recommendation: "",
+      pathRecommendation: pathRecommendation || "",
     });
   }
 

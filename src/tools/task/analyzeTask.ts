@@ -7,29 +7,19 @@ export const analyzeTaskSchema = z.object({
   summary: z
     .string()
     .min(10, {
-      message: "任務摘要不能少於10個字符，請提供更詳細的描述以確保任務目標明確",
-      // Task summary must be at least 10 characters long, please provide a more detailed description to ensure clear task objectives
+      message: "Task summary must be at least 10 characters. Please provide structured summary including: (1) Task objectives, (2) Technical scope, (3) Key challenges, (4) Success criteria. Example: 'Analyze user authentication system requirements, identify security vulnerabilities, assess scalability constraints, and recommend implementation approach.'",
     })
-    .describe(
-      "結構化的任務摘要，包含任務目標、範圍與關鍵技術挑戰，最少10個字符"
-      // Structured task summary including task objectives, scope and key technical challenges, minimum 10 characters
-    ),
+    .describe("Structured task summary for technical analysis. REQUIRED ELEMENTS: task objectives, scope definition, key technical challenges, success criteria. MINIMUM 10 characters. EXAMPLE: 'Evaluate microservices architecture for e-commerce platform, focusing on data consistency, service communication, and deployment strategies.'"),
   initialConcept: z
     .string()
     .min(50, {
-      message:
-        "初步解答構想不能少於50個字符，請提供更詳細的內容確保技術方案清晰",
-        // Initial solution concept must be at least 50 characters long, please provide more detailed content to ensure clear technical solution
+      message: "Initial solution concept must be at least 50 characters. Please provide comprehensive technical approach including: (1) Architecture design, (2) Implementation strategy, (3) Technology stack, (4) Risk considerations. Use pseudocode format if code examples needed. Example: 'Implement event-driven architecture using Node.js microservices with Redis message queue, PostgreSQL for data persistence, and Docker containerization for deployment.'",
     })
-    .describe(
-      "最少50個字符的初步解答構想，包含技術方案、架構設計和實施策略，如果需要提供程式碼請使用 pseudocode 格式且僅提供高級邏輯流程和關鍵步驟避免完整代碼"
-      // Initial solution concept of at least 50 characters, including technical solution, architectural design and implementation strategy. If code is needed, use pseudocode format providing only high-level logic flow and key steps, avoiding complete code
-    ),
+    .describe("Preliminary solution concept with technical approach, architectural design, and implementation strategy. MINIMUM 50 characters. MUST INCLUDE: technology choices, architectural patterns, implementation approach, risk assessment. IF CODE NEEDED: use pseudocode format with high-level logic flow only, avoid complete code implementation. EXAMPLE: 'Design RESTful API with Express.js, implement JWT authentication middleware, use Prisma ORM for database operations, and Redis for session management.'"),
   previousAnalysis: z
     .string()
     .optional()
-    .describe("前次迭代的分析結果，用於持續改進方案（僅在重新分析時需提供）"),
-    // Previous iteration analysis results, used for continuous solution improvement (only required when re-analyzing)
+    .describe("Previous iteration analysis results for continuous improvement. OPTIONAL - only provide when re-analyzing or iterating on previous work. SHOULD INCLUDE: previous findings, identified issues, lessons learned, areas for improvement. EXAMPLE: 'Previous analysis identified performance bottlenecks in database queries and recommended connection pooling implementation.'"),
 });
 
 export async function analyzeTask({
