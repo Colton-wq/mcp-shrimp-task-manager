@@ -14,6 +14,8 @@ import { fileURLToPath } from "url";
 import { exec } from "child_process";
 import { promisify } from "util";
 import { getDataDir, getTasksFilePath, getMemoryDir } from "../utils/paths.js";
+import { withFileLock } from "../utils/fileLock.js";
+import { getActiveProjectContext, ProjectSession } from "../utils/projectSession.js";
 
 const execAsync = promisify(exec);
 
@@ -146,26 +148,64 @@ async function readTasks(): Promise<Task[]> {
 
 // 寫入所有任務
 // Write all tasks
-async function writeTasks(tasks: Task[], commitMessage?: string): Promise<void> {
+async function writeTasks(
+  tasks: Task[],
+  commitMessage?: string,
+  projectContext?: string
+): Promise<void> {
   await ensureDataDir();
+
+  // 獲取項目上下文進行驗證
+  // Get project context for validation
+  const currentProject = ProjectSession.getCurrentProject();
+  const targetProject = projectContext || currentProject;
+
+  // 獲取目標路徑
+  // Get target paths
   const TASKS_FILE = await getTasksFilePath();
   const DATA_DIR = await getDataDir();
-  
-  // Initialize git if needed
-  await initGitIfNeeded(DATA_DIR);
-  
-  // Write the tasks file
-  await fs.writeFile(TASKS_FILE, JSON.stringify({ tasks }, null, 2));
-  
-  // Commit the changes
-  if (commitMessage) {
-    await commitTaskChanges(DATA_DIR, commitMessage);
+
+  // 項目上下文驗證
+  // Project context validation
+  if (projectContext && projectContext !== currentProject) {
+    // 如果指定了不同的項目上下文，更新當前項目
+    // If a different project context is specified, update current project
+    ProjectSession.setCurrentProject(projectContext);
   }
+
+  // 使用文件鎖定確保原子操作
+  // Use file locking to ensure atomic operations
+  await withFileLock(TASKS_FILE, async () => {
+    // Initialize git if needed
+    await initGitIfNeeded(DATA_DIR);
+
+    // Write the tasks file
+    await fs.writeFile(TASKS_FILE, JSON.stringify({ tasks }, null, 2));
+
+    // Commit the changes
+    if (commitMessage) {
+      await commitTaskChanges(DATA_DIR, commitMessage);
+    }
+  });
 }
 
 // 獲取所有任務
 // Get all tasks
-export async function getAllTasks(): Promise<Task[]> {
+export async function getAllTasks(projectContext?: string): Promise<Task[]> {
+  // 如果指定了項目上下文，臨時切換項目
+  // If project context is specified, temporarily switch project
+  if (projectContext) {
+    const currentProject = ProjectSession.getCurrentProject();
+    try {
+      ProjectSession.setCurrentProject(projectContext);
+      return await readTasks();
+    } finally {
+      // 恢復原來的項目上下文
+      // Restore original project context
+      ProjectSession.setCurrentProject(currentProject);
+    }
+  }
+
   return await readTasks();
 }
 
@@ -184,7 +224,8 @@ export async function createTask(
   notes?: string,
   dependencies: string[] = [],
   relatedFiles?: RelatedFile[],
-  agent?: string
+  agent?: string,
+  projectContext?: string
 ): Promise<Task> {
   const tasks = await readTasks();
 
@@ -206,7 +247,7 @@ export async function createTask(
   };
 
   tasks.push(newTask);
-  await writeTasks(tasks, `Add new task: ${newTask.name}`);
+  await writeTasks(tasks, `Add new task: ${newTask.name}`, projectContext);
 
   return newTask;
 }
@@ -215,7 +256,8 @@ export async function createTask(
 // Update task
 export async function updateTask(
   taskId: string,
-  updates: Partial<Task>
+  updates: Partial<Task>,
+  projectContext?: string
 ): Promise<Task | null> {
   const tasks = await readTasks();
   const taskIndex = tasks.findIndex((task) => task.id === taskId);
@@ -248,7 +290,7 @@ export async function updateTask(
     updatedAt: getLocalDate(),
   };
 
-  await writeTasks(tasks, `Update task: ${tasks[taskIndex].name}`);
+  await writeTasks(tasks, `Update task: ${tasks[taskIndex].name}`, projectContext);
 
   return tasks[taskIndex];
 }
@@ -413,7 +455,8 @@ export async function batchCreateOrUpdateTasks(
     agent?: string; // 新增：代理分配
   }>,
   updateMode: "append" | "overwrite" | "selective" | "clearAllTasks", // 必填參數，指定任務更新策略
-  globalAnalysisResult?: string // 新增：全局分析結果
+  globalAnalysisResult?: string, // 新增：全局分析結果
+  projectContext?: string // 新增：項目上下文
 ): Promise<Task[]> {
   // 讀取現有的所有任務
   const existingTasks = await readTasks();
@@ -496,12 +539,8 @@ export async function batchCreateOrUpdateTasks(
           description: taskData.description,
           notes: taskData.notes,
           // 後面會處理 dependencies
-<<<<<<< HEAD
-          updatedAt: getLocalDate(),
-=======
           // Dependencies will be processed later
-          updatedAt: new Date(),
->>>>>>> upstream/main
+          updatedAt: getLocalDate(),
           // 新增：保存實現指南（如果有）
           // New: Save implementation guide (if any)
           implementationGuide: taskData.implementationGuide,
@@ -618,12 +657,8 @@ export async function batchCreateOrUpdateTasks(
   const allTasks = [...tasksToKeep, ...newTasks];
 
   // 寫入更新後的任務列表
-<<<<<<< HEAD
-  await writeTasks(allTasks, `Bulk task operation: ${updateMode} mode, ${newTasks.length} tasks`);
-=======
   // Write updated task list
-  await writeTasks(allTasks);
->>>>>>> upstream/main
+  await writeTasks(allTasks, `Bulk task operation: ${updateMode} mode, ${newTasks.length} tasks`, projectContext);
 
   return newTasks;
 }
@@ -669,7 +704,8 @@ export async function canExecuteTask(
 // 刪除任務
 // Delete task
 export async function deleteTask(
-  taskId: string
+  taskId: string,
+  projectContext?: string
 ): Promise<{ success: boolean; message: string }> {
   const tasks = await readTasks();
   const taskIndex = tasks.findIndex((task) => task.id === taskId);
@@ -702,13 +738,10 @@ export async function deleteTask(
   }
 
   // 執行刪除操作
-<<<<<<< HEAD
   const deletedTask = tasks[taskIndex];
-=======
   // Execute delete operation
->>>>>>> upstream/main
   tasks.splice(taskIndex, 1);
-  await writeTasks(tasks, `Delete task: ${deletedTask.name}`);
+  await writeTasks(tasks, `Delete task: ${deletedTask.name}`, projectContext);
 
   return { success: true, message: "任務刪除成功" };
 }
@@ -859,7 +892,7 @@ export async function assessTaskComplexity(
 
 // 清除所有任務
 // Clear all tasks
-export async function clearAllTasks(): Promise<{
+export async function clearAllTasks(projectContext?: string): Promise<{
   success: boolean;
   message: string;
   backupFile?: string;
@@ -885,15 +918,9 @@ export async function clearAllTasks(): Promise<{
       (task) => task.status === TaskStatus.COMPLETED
     );
 
-<<<<<<< HEAD
     // 創建備份文件名 - 使用本地時間
+    // Create backup file name - using local time
     const timestamp = getLocalISOString()
-=======
-    // 創建備份文件名
-    // Create backup file name
-    const timestamp = new Date()
-      .toISOString()
->>>>>>> upstream/main
       .replace(/:/g, "-")
       .replace(/\..+/, "")
       .replace(/[+\-]\d{2}-\d{2}$/, ""); // Remove timezone offset for filename
@@ -920,13 +947,8 @@ export async function clearAllTasks(): Promise<{
     );
 
     // 清空任務文件
-<<<<<<< HEAD
-    await writeTasks([], `Clear all tasks (${allTasks.length} tasks removed)`);
-=======
     // Clear task file
-    await writeTasks([]);
->>>>>>> upstream/main
-
+    await writeTasks([], `Clear all tasks (${allTasks.length} tasks removed)`, projectContext);
     return {
       success: true,
       message: `已成功清除所有任務，共 ${allTasks.length} 個任務被刪除，已備份 ${completedTasks.length} 個已完成的任務至 memory 目錄`,
@@ -1115,7 +1137,6 @@ export async function searchTasksWithCommand(
   // Pagination processing
   const totalResults = allTasks.length;
   const totalPages = Math.ceil(totalResults / pageSize);
-  const safePage = Math.max(1, Math.min(page, totalPages || 1)); // 確保頁碼有效
   const safePage = Math.max(1, Math.min(page, totalPages || 1)); // Ensure page number is valid
   const startIndex = (safePage - 1) * pageSize;
   const endIndex = Math.min(startIndex + pageSize, totalResults);
@@ -1200,7 +1221,6 @@ function escapeShellArg(arg: string): string {
   // Remove all control characters and special characters
   return arg
     .replace(/[\x00-\x1F\x7F]/g, "") // 控制字符
-    .replace(/[&;`$"'<>|]/g, ""); // Shell 特殊字符
     .replace(/[&;`$"'<>|]/g, ""); // Shell special characters
 }
 

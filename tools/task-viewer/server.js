@@ -7,6 +7,7 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import os from 'os';
 import dotenv from 'dotenv';
+import { getDataDir } from '../../dist/utils/paths.js';
 
 // Get __dirname equivalent in ES modules
 const __filename = fileURLToPath(import.meta.url);
@@ -124,18 +125,52 @@ function parseAgentMetadata(content) {
     return metadata;
 }
 
+// 智能合并函数
+function mergeProjectConfigurations(existing, discovered) {
+    const merged = [...existing];
+    const existingPaths = new Set(existing.map(p => p.path));
+
+    discovered.forEach(project => {
+        if (!existingPaths.has(project.path)) {
+            merged.push(project);
+        }
+    });
+
+    return merged;
+}
+
 // Load or create settings file
 async function loadSettings() {
     try {
         console.log('Loading settings from:', SETTINGS_FILE);
+        // 加载现有配置(保持现有逻辑)
         const data = await fs.readFile(SETTINGS_FILE, 'utf8');
         const settings = JSON.parse(data);
-        console.log('Loaded settings:', settings);
-        return settings.projects || settings.profiles || settings.agents || []; // Support new 'projects' and old keys for backward compatibility
+        const existingProjects = settings.projects || settings.profiles || settings.agents || [];
+        console.log('Loaded existing settings:', settings);
+
+        // 获取自动发现的项目
+        const discoveredProjects = await scanForProjects();
+
+        // 智能合并：避免重复，保持手动配置优先
+        const mergedProjects = mergeProjectConfigurations(existingProjects, discoveredProjects);
+
+        console.log(`Merged ${existingProjects.length} existing + ${discoveredProjects.length} discovered = ${mergedProjects.length} total projects`);
+        return mergedProjects;
     } catch (err) {
         console.error('Error loading settings:', err.message);
-        await saveSettings(defaultAgents);
-        return defaultAgents;
+        // 如果配置文件不存在，只返回发现的项目
+        const discoveredProjects = await scanForProjects();
+        if (discoveredProjects.length > 0) {
+            console.log(`No existing settings found, using ${discoveredProjects.length} discovered projects`);
+            await saveSettings(discoveredProjects);
+            return discoveredProjects;
+        } else {
+            // 如果没有发现项目，使用默认代理
+            console.log('No projects discovered, using default agents');
+            await saveSettings(defaultAgents);
+            return defaultAgents;
+        }
     }
 }
 
@@ -156,11 +191,30 @@ async function loadGlobalSettings() {
         const data = await fs.readFile(GLOBAL_SETTINGS_FILE, 'utf8');
         const settings = JSON.parse(data);
         console.log('Loaded global settings:', settings);
-        return settings;
+
+        // Ensure backward compatibility by adding new fields if they don't exist
+        const enhancedSettings = {
+            claudeFolderPath: settings.claudeFolderPath || '',
+            openAIKey: settings.openAIKey || '',
+            modelName: settings.modelName || 'gpt-4-turbo-preview',
+            apiUrl: settings.apiUrl || 'https://api.openai.com/v1',
+            lastUpdated: settings.lastUpdated || getLocalISOString(),
+            version: settings.version || VERSION
+        };
+
+        // Save enhanced settings if new fields were added
+        if (!settings.modelName || !settings.apiUrl) {
+            await saveGlobalSettings(enhancedSettings);
+        }
+
+        return enhancedSettings;
     } catch (err) {
         console.error('Error loading global settings:', err.message);
         const defaultGlobalSettings = {
             claudeFolderPath: '',
+            openAIKey: '',
+            modelName: 'gpt-4-turbo-preview',
+            apiUrl: 'https://api.openai.com/v1',
             lastUpdated: getLocalISOString(),
             version: VERSION
         };
@@ -248,6 +302,57 @@ function getMimeType(filePath) {
         '.ico': 'image/x-icon'
     };
     return mimeTypes[ext] || 'text/plain';
+}
+
+// Helper function to check if file exists
+async function fileExists(filePath) {
+    try {
+        await fs.access(filePath);
+        return true;
+    } catch {
+        return false;
+    }
+}
+
+// Project discovery functions
+async function scanForProjects() {
+    try {
+        const dataDir = await getDataDir(); // 重用现有路径解析
+        const projects = [];
+
+        console.log(`Scanning for projects in: ${dataDir}`);
+
+        // Check if data directory exists
+        if (!(await fileExists(dataDir))) {
+            console.log(`Data directory does not exist: ${dataDir}`);
+            return projects;
+        }
+
+        const entries = await fs.readdir(dataDir, { withFileTypes: true });
+
+        for (const entry of entries) {
+            if (entry.isDirectory()) {
+                const tasksPath = path.join(dataDir, entry.name, 'tasks.json');
+                if (await fileExists(tasksPath)) {
+                    projects.push({
+                        id: entry.name.toLowerCase().replace(/[^a-z0-9-]/g, '-'),
+                        name: entry.name,
+                        path: tasksPath,
+                        projectRoot: path.join(dataDir, entry.name),
+                        discovered: true,
+                        source: 'auto-discovered'
+                    });
+                    console.log(`Discovered project: ${entry.name} at ${tasksPath}`);
+                }
+            }
+        }
+
+        console.log(`Found ${projects.length} projects`);
+        return projects;
+    } catch (err) {
+        console.error('Error scanning for projects:', err);
+        return [];
+    }
 }
 
 // Template management functions
@@ -1036,19 +1141,134 @@ async function startServer() {
             req.on('end', async () => {
                 try {
                     const newSettings = JSON.parse(body);
-                    newSettings.lastUpdated = getLocalISOString();
-                    newSettings.version = VERSION;
-                    
-                    await saveGlobalSettings(newSettings);
-                    
+
+                    // Validate and set defaults for new API configuration fields
+                    const validatedSettings = {
+                        claudeFolderPath: newSettings.claudeFolderPath || '',
+                        openAIKey: newSettings.openAIKey || '',
+                        modelName: newSettings.modelName || 'gpt-4-turbo-preview',
+                        apiUrl: newSettings.apiUrl || 'https://api.openai.com/v1',
+                        lastUpdated: getLocalISOString(),
+                        version: VERSION
+                    };
+
+                    // Basic validation for API URL format
+                    if (validatedSettings.apiUrl && !validatedSettings.apiUrl.startsWith('http')) {
+                        throw new Error('API URL must start with http:// or https://');
+                    }
+
+                    await saveGlobalSettings(validatedSettings);
+
                     res.writeHead(200, { 'Content-Type': 'application/json' });
-                    res.end(JSON.stringify(newSettings));
+                    res.end(JSON.stringify(validatedSettings));
                 } catch (err) {
                     res.writeHead(500, { 'Content-Type': 'text/plain' });
                     res.end('Error saving global settings: ' + err.message);
                 }
             });
-            
+
+        } else if (url.pathname === '/api/test-openai-connection' && req.method === 'POST') {
+            // Test OpenAI API connection
+            let body = '';
+            req.on('data', chunk => body += chunk.toString());
+            req.on('end', async () => {
+                try {
+                    const { apiKey, apiUrl, modelName } = JSON.parse(body);
+
+                    if (!apiKey || !apiUrl || !modelName) {
+                        res.writeHead(400, { 'Content-Type': 'application/json' });
+                        res.end(JSON.stringify({
+                            error: 'Missing required parameters',
+                            message: 'API Key, API URL, and Model Name are required'
+                        }));
+                        return;
+                    }
+
+                    // Parse the API URL to get hostname and path
+                    const apiUrlObj = new URL(apiUrl);
+                    const hostname = apiUrlObj.hostname;
+                    const basePath = apiUrlObj.pathname;
+                    const fullPath = basePath.endsWith('/') ? basePath + 'chat/completions' : basePath + '/chat/completions';
+
+                    // Test API connection with a simple request
+                    const testData = JSON.stringify({
+                        model: modelName,
+                        messages: [
+                            { role: 'user', content: 'Hello, this is a connection test.' }
+                        ],
+                        max_tokens: 10,
+                        temperature: 0
+                    });
+
+                    const testPromise = new Promise((resolve, reject) => {
+                        const options = {
+                            hostname: hostname,
+                            port: apiUrlObj.port || (apiUrlObj.protocol === 'https:' ? 443 : 80),
+                            path: fullPath,
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'Authorization': `Bearer ${apiKey}`,
+                                'Content-Length': Buffer.byteLength(testData)
+                            }
+                        };
+
+                        const protocol = apiUrlObj.protocol === 'https:' ? https : http;
+                        const req = protocol.request(options, (res) => {
+                            let data = '';
+                            res.on('data', chunk => data += chunk);
+                            res.on('end', () => {
+                                if (res.statusCode === 200) {
+                                    try {
+                                        const response = JSON.parse(data);
+                                        resolve({
+                                            success: true,
+                                            model: response.model,
+                                            usage: response.usage
+                                        });
+                                    } catch (err) {
+                                        reject(new Error('Invalid JSON response from API'));
+                                    }
+                                } else {
+                                    let errorMessage = 'API connection failed';
+                                    try {
+                                        const errorData = JSON.parse(data);
+                                        errorMessage = errorData.error?.message || errorMessage;
+                                    } catch (e) {
+                                        errorMessage = `HTTP ${res.statusCode}: ${data}`;
+                                    }
+                                    reject(new Error(errorMessage));
+                                }
+                            });
+                        });
+
+                        req.on('error', (err) => {
+                            reject(new Error(`Connection failed: ${err.message}`));
+                        });
+
+                        req.setTimeout(10000, () => {
+                            req.destroy();
+                            reject(new Error('Connection timeout'));
+                        });
+
+                        req.write(testData);
+                        req.end();
+                    });
+
+                    const result = await testPromise;
+                    res.writeHead(200, { 'Content-Type': 'application/json' });
+                    res.end(JSON.stringify(result));
+
+                } catch (err) {
+                    console.error('API connection test error:', err);
+                    res.writeHead(500, { 'Content-Type': 'application/json' });
+                    res.end(JSON.stringify({
+                        error: 'Connection test failed',
+                        message: err.message
+                    }));
+                }
+            });
+
         // Agent management API routes
         } else if (url.pathname === '/api/agents/global' && req.method === 'GET') {
             // List global agents from Claude folder
@@ -1505,20 +1725,23 @@ async function startServer() {
                     const { projectId, taskIds } = JSON.parse(body);
                     console.log('AI Agent Assignment request:', { projectId, taskIds });
                     
-                    // Check if OpenAI API key is set - first from settings, then environment
-                    let openAIKey = process.env.OPENAI_API_KEY || process.env.OPEN_AI_KEY_SHRIMP_TASK_VIEWER;
-                    
-                    // Try to get key from global settings if not in environment
-                    if (!openAIKey) {
-                        try {
-                            const globalSettings = await loadGlobalSettings();
-                            if (globalSettings && globalSettings.openAIKey) {
-                                openAIKey = globalSettings.openAIKey;
-                            }
-                        } catch (err) {
-                            console.error('Error loading global settings for API key:', err);
-                        }
+                    // Load global settings for API configuration
+                    let globalSettings;
+                    try {
+                        globalSettings = await loadGlobalSettings();
+                    } catch (err) {
+                        console.error('Error loading global settings:', err);
+                        globalSettings = {
+                            openAIKey: '',
+                            modelName: 'gpt-4-turbo-preview',
+                            apiUrl: 'https://api.openai.com/v1'
+                        };
                     }
+
+                    // Get API configuration - prioritize environment variables for API key
+                    const openAIKey = process.env.OPENAI_API_KEY || process.env.OPEN_AI_KEY_SHRIMP_TASK_VIEWER || globalSettings.openAIKey;
+                    const modelName = globalSettings.modelName || 'gpt-4-turbo-preview';
+                    const apiUrl = globalSettings.apiUrl || 'https://api.openai.com/v1';
                     
                     if (!openAIKey) {
                         res.writeHead(400, { 'Content-Type': 'application/json' });
@@ -1656,7 +1879,7 @@ async function startServer() {
                     // Call OpenAI API using https module
                     
                     const openAIData = JSON.stringify({
-                        model: 'gpt-4',
+                        model: modelName,
                         messages: [
                             {
                                 role: 'system',
@@ -1670,11 +1893,18 @@ async function startServer() {
                         temperature: 0.3,
                         max_tokens: 1000
                     });
-                    
+
+                    // Parse API URL for hostname and path
+                    const apiUrlObj = new URL(apiUrl);
+                    const hostname = apiUrlObj.hostname;
+                    const basePath = apiUrlObj.pathname;
+                    const fullPath = basePath.endsWith('/') ? basePath + 'chat/completions' : basePath + '/chat/completions';
+
                     const openAIPromise = new Promise((resolve, reject) => {
                         const options = {
-                            hostname: 'api.openai.com',
-                            path: '/v1/chat/completions',
+                            hostname: hostname,
+                            port: apiUrlObj.port || (apiUrlObj.protocol === 'https:' ? 443 : 80),
+                            path: fullPath,
                             method: 'POST',
                             headers: {
                                 'Content-Type': 'application/json',
@@ -1683,7 +1913,8 @@ async function startServer() {
                             }
                         };
                         
-                        const req = https.request(options, (res) => {
+                        const protocol = apiUrlObj.protocol === 'https:' ? https : http;
+                        const req = protocol.request(options, (res) => {
                             let data = '';
                             res.on('data', chunk => data += chunk);
                             res.on('end', () => {
@@ -1757,9 +1988,24 @@ async function startServer() {
                     const { message, agents, context, profileId, openAIKey, availableAgents } = JSON.parse(body);
                     console.log('Chat request:', { message, agents, context: context?.currentPage });
                     
-                    // Validate OpenAI key
-                    const apiKey = openAIKey || process.env.OPENAI_API_KEY || process.env.OPEN_AI_KEY_SHRIMP_TASK_VIEWER;
-                    
+                    // Load global settings for API configuration
+                    let globalSettings;
+                    try {
+                        globalSettings = await loadGlobalSettings();
+                    } catch (err) {
+                        console.error('Error loading global settings:', err);
+                        globalSettings = {
+                            openAIKey: '',
+                            modelName: 'gpt-4-turbo-preview',
+                            apiUrl: 'https://api.openai.com/v1'
+                        };
+                    }
+
+                    // Get API configuration - prioritize passed openAIKey, then environment, then settings
+                    const apiKey = openAIKey || process.env.OPENAI_API_KEY || process.env.OPEN_AI_KEY_SHRIMP_TASK_VIEWER || globalSettings.openAIKey;
+                    const modelName = globalSettings.modelName || 'gpt-4-turbo-preview';
+                    const apiUrl = globalSettings.apiUrl || 'https://api.openai.com/v1';
+
                     if (!apiKey) {
                         res.writeHead(400, { 'Content-Type': 'application/json' });
                         res.end(JSON.stringify({
@@ -1870,7 +2116,7 @@ async function startServer() {
 
                     // Call OpenAI API
                     const openAIData = JSON.stringify({
-                        model: 'gpt-4-turbo-preview',
+                        model: modelName,
                         messages: [
                             { role: 'system', content: systemPrompt },
                             { role: 'user', content: message }
@@ -1878,11 +2124,18 @@ async function startServer() {
                         temperature: 0.7,
                         max_tokens: 1000
                     });
-                    
+
+                    // Parse API URL for hostname and path
+                    const apiUrlObj = new URL(apiUrl);
+                    const hostname = apiUrlObj.hostname;
+                    const basePath = apiUrlObj.pathname;
+                    const fullPath = basePath.endsWith('/') ? basePath + 'chat/completions' : basePath + '/chat/completions';
+
                     const openAIResponse = await new Promise((resolve, reject) => {
                         const options = {
-                            hostname: 'api.openai.com',
-                            path: '/v1/chat/completions',
+                            hostname: hostname,
+                            port: apiUrlObj.port || (apiUrlObj.protocol === 'https:' ? 443 : 80),
+                            path: fullPath,
                             method: 'POST',
                             headers: {
                                 'Content-Type': 'application/json',
@@ -1891,7 +2144,8 @@ async function startServer() {
                             }
                         };
                         
-                        const req = https.request(options, (res) => {
+                        const protocol = apiUrlObj.protocol === 'https:' ? https : http;
+                        const req = protocol.request(options, (res) => {
                             let data = '';
                             res.on('data', chunk => data += chunk);
                             res.on('end', () => {

@@ -2,6 +2,7 @@ import path from "path";
 import { fileURLToPath } from "url";
 import { Server } from "@modelcontextprotocol/sdk/server/index.js";
 import fs from "fs";
+import { ProjectSession, getActiveProjectContext } from "./projectSession.js";
 
 // 取得專案根目錄
 // Get project root directory
@@ -12,6 +13,12 @@ const PROJECT_ROOT = path.resolve(__dirname, "../..");
 // 全局 server 實例
 // Global server instance
 let globalServer: Server | null = null;
+
+// 項目上下文緩存變量
+// Project context cache variables
+let cachedDataDir: string | null = null;
+let lastRootsCall: number = 0;
+const CACHE_DURATION = 5000; // 5秒緩存持續時間 / 5 seconds cache duration
 
 /**
  * 設置全局 server 實例
@@ -36,9 +43,37 @@ export function getGlobalServer(): Server | null {
  * If there's a server that supports listRoots, use the first root starting with file:// + "/data"
  * 否則使用環境變數或專案根目錄
  * Otherwise use environment variables or project root directory
+ *
+ * @param forceRefresh 強制刷新緩存，跳過緩存機制 / Force refresh cache, skip cache mechanism
+ * @param projectOverride 可選的項目名稱覆蓋 / Optional project name override
+ * @returns DATA_DIR 路徑 / DATA_DIR path
  */
-export async function getDataDir(): Promise<string> {
+export async function getDataDir(forceRefresh = false, projectOverride?: string): Promise<string> {
+  const now = Date.now();
   const server = getGlobalServer();
+
+  // 檢查緩存有效性（如果不強制刷新）
+  // Check cache validity (if not forcing refresh)
+  if (!forceRefresh && cachedDataDir && (now - lastRootsCall) < CACHE_DURATION) {
+    return cachedDataDir;
+  }
+
+  // 嘗試使用項目會話管理獲取項目上下文
+  // Try to get project context using project session management
+  if (server && !projectOverride) {
+    try {
+      const projectContext = await getActiveProjectContext(server, projectOverride);
+      if (projectContext) {
+        cachedDataDir = projectContext.dataDir;
+        lastRootsCall = now;
+        return cachedDataDir;
+      }
+    } catch (error) {
+      // 如果項目上下文獲取失敗，回退到原有邏輯
+      // If project context acquisition fails, fall back to original logic
+    }
+  }
+
   let rootPath: string | null = null;
 
   if (server) {
@@ -77,34 +112,56 @@ export async function getDataDir(): Promise<string> {
       if (rootPath) {
         const lastFolderName = path.basename(rootPath);
         const finalPath = path.join(process.env.DATA_DIR, lastFolderName);
+        // 緩存結果
+        // Cache the result
+        cachedDataDir = finalPath;
+        lastRootsCall = now;
         return finalPath;
       } else {
         // 如果沒有 rootPath，直接返回 DATA_DIR
         // If there's no rootPath, return DATA_DIR directly
+        cachedDataDir = process.env.DATA_DIR;
+        lastRootsCall = now;
         return process.env.DATA_DIR;
       }
     } else {
       // 如果 DATA_DIR 是相對路徑，返回 "rootPath/DATA_DIR"
       // If DATA_DIR is a relative path, return "rootPath/DATA_DIR"
       if (rootPath) {
-        return path.join(rootPath, process.env.DATA_DIR);
+        const finalPath = path.join(rootPath, process.env.DATA_DIR);
+        // 緩存結果
+        // Cache the result
+        cachedDataDir = finalPath;
+        lastRootsCall = now;
+        return finalPath;
       } else {
         // 如果沒有 rootPath，使用 PROJECT_ROOT
         // If there's no rootPath, use PROJECT_ROOT
-        return path.join(PROJECT_ROOT, process.env.DATA_DIR);
+        const finalPath = path.join(PROJECT_ROOT, process.env.DATA_DIR);
+        cachedDataDir = finalPath;
+        lastRootsCall = now;
+        return finalPath;
       }
     }
   }
 
   // 如果沒有 DATA_DIR，使用預設邏輯
   // If there's no DATA_DIR, use default logic
+  let finalPath: string;
   if (rootPath) {
-    return path.join(rootPath, "data");
+    finalPath = path.join(rootPath, "data");
+  } else {
+    // 最後回退到專案根目錄
+    // Finally fall back to project root directory
+    finalPath = path.join(PROJECT_ROOT, "data");
   }
 
-  // 最後回退到專案根目錄
-  // Finally fall back to project root directory
-  return path.join(PROJECT_ROOT, "data");
+  // 緩存結果
+  // Cache the result
+  cachedDataDir = finalPath;
+  lastRootsCall = now;
+
+  return finalPath;
 }
 
 /**
@@ -140,4 +197,17 @@ export async function getWebGuiFilePath(): Promise<string> {
  */
 export function getProjectRoot(): string {
   return PROJECT_ROOT;
+}
+
+/**
+ * 清除路徑緩存
+ * Clear path cache
+ *
+ * 當需要強制重新計算路徑時調用此函數
+ * Call this function when you need to force recalculation of paths
+ */
+export function clearPathCache(): void {
+  cachedDataDir = null;
+  lastRootsCall = 0;
+  ProjectSession.clearCache();
 }
