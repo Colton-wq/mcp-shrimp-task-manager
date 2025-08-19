@@ -27,12 +27,13 @@ export async function analyzeTask({
   initialConcept,
   previousAnalysis,
 }: z.infer<typeof analyzeTaskSchema>) {
-  // 使用prompt生成器獲取最終prompt
-  // Use prompt generator to get the final prompt
+  // 使用prompt生成器獲取最終prompt，启用智能模板选择
+  // Use prompt generator to get the final prompt with intelligent template selection
   const prompt = await getAnalyzeTaskPrompt({
     summary,
     initialConcept,
     previousAnalysis,
+    analysisType: 'auto', // 启用智能检测
   });
 
   return {

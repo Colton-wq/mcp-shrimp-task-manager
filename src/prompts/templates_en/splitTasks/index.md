@@ -1,17 +1,72 @@
-## Task Splitting - {updateMode} Mode
+## Enhanced Task Splitting - {updateMode} Mode
 
-## Splitting Strategy
+## Comprehensive Splitting Strategy
 
-1. **Functional Decomposition** - Independent testable sub-functions with clear inputs and outputs
-2. **Technical Layer Decomposition** - Separate tasks along architectural layers, ensuring clear interfaces
-3. **Development Stage Decomposition** - Core functionality first, optimization features later
-4. **Risk-based Decomposition** - Isolate high-risk parts, reduce overall risk
+### **1. Multi-Dimensional Decomposition**
 
-## Task Quality Review
+**Functional Decomposition:**
+- Independent testable sub-functions with clear inputs and outputs
+- Each task should have a single, well-defined responsibility
+- Consider user-facing vs. internal functionality
 
-1. **Task Atomicity** - Each task is small and specific enough to be completed independently
-2. **Dependencies** - Task dependencies form a directed acyclic graph, avoiding circular dependencies
-3. **Description Completeness** - Each task description is clear and accurate, including necessary context
+**Technical Layer Decomposition:**
+- Separate tasks along architectural layers, ensuring clear interfaces
+- Database layer, business logic layer, API layer, UI layer
+- Consider cross-cutting concerns (logging, security, monitoring)
+
+**Development Stage Decomposition:**
+- Core functionality first, optimization features later
+- MVP features vs. enhancement features
+- Critical path vs. nice-to-have features
+
+**Risk-based Decomposition:**
+- Isolate high-risk parts, reduce overall risk
+- Separate experimental/uncertain tasks from stable ones
+- Consider external dependencies and integration points
+
+### **2. Boundary Conditions & Edge Cases Planning**
+
+**Resource Constraints:**
+- Consider time limitations for each task
+- Identify tasks requiring specific skills or expertise
+- Plan for potential resource conflicts
+
+**Failure Scenarios:**
+- What happens if a critical task fails?
+- Which tasks can be delayed without blocking others?
+- What are the rollback procedures for each task?
+
+**Integration Boundaries:**
+- How do tasks interact with existing systems?
+- What are the data flow dependencies between tasks?
+- Which tasks require coordination with external teams?
+
+### **3. Enhanced Task Quality Framework**
+
+**Task Atomicity:**
+- Each task is small and specific enough to be completed independently
+- Task should be completable by one person in a reasonable timeframe
+- Clear definition of "done" for each task
+
+**Dependency Management:**
+- Task dependencies form a directed acyclic graph, avoiding circular dependencies
+- Consider both technical and resource dependencies
+- Plan for parallel execution opportunities
+
+**Description Completeness:**
+- Each task description is clear and accurate, including necessary context
+- Include acceptance criteria and verification methods
+- Specify required skills and estimated effort
+
+**Risk Assessment per Task:**
+- Identify high-risk tasks that might fail or take longer
+- Plan mitigation strategies for critical path tasks
+- Consider external dependencies and their reliability
+
+**Boundary Condition Handling:**
+- How does each task handle edge cases and error conditions?
+- What are the input validation requirements?
+- How are failures detected and reported?
 
 ## Task List
 

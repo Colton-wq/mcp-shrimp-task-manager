@@ -1,21 +1,62 @@
-## Task Analysis
+## Enhanced Task Analysis Framework
 
-You must complete the following sub-steps in sequence, and at the end call the `analyze_task` tool to pass the preliminary design solution to the next stage.
+You must complete the following comprehensive analysis in sequence, and at the end call the `analyze_task` tool to pass the preliminary design solution to the next stage.
 
-1. **Analysis Purpose**
+1. **Requirements Understanding & Validation**
 
-   - Read and understand:
+   - **Original User Request Analysis**:
      ```
      Task Description: {description}
      Task Requirements and Constraints: {requirements}
      {tasksTemplate}
      ```
-   - Confirm:
-     - Task objectives and expected outcomes
-     - Technical challenges and key decision points
-     - Integration requirements with existing systems/architecture
 
-2. **Identify Project Architecture**
+   - **Critical Questions to Answer**:
+     - What is the user's ACTUAL underlying need? (not just what they asked for)
+     - Are there implicit requirements not explicitly stated?
+     - What assumptions are we making about the user's context?
+     - What would happen if we misunderstood the requirement?
+
+   - **Requirement Validation Checklist**:
+     - [ ] Can we restate the requirement in our own words?
+     - [ ] Have we identified all stakeholders affected?
+     - [ ] Are there conflicting requirements that need resolution?
+     - [ ] What are the acceptance criteria for "done"?
+
+2. **Boundary Conditions & Edge Cases Analysis**
+
+   - **Success Scenarios**:
+     - Best case: What does perfect execution look like?
+     - Normal case: What does typical successful execution look like?
+     - Minimum viable: What's the smallest acceptable solution?
+
+   - **Failure Scenarios & Risk Assessment**:
+     - What could go wrong during implementation?
+     - What are the dependencies that could fail?
+     - What happens if we run out of time/resources?
+     - What are the rollback/recovery options?
+
+   - **Resource & Constraint Analysis**:
+     - Time constraints and deadlines
+     - Technical skill requirements
+     - System resource limitations
+     - Budget/effort constraints
+
+3. **Multi-Dimensional Problem Analysis**
+
+   - **Technical Dimensions**:
+     - Functional requirements (what it must do)
+     - Non-functional requirements (performance, security, scalability)
+     - Integration requirements (APIs, databases, external services)
+     - Maintenance requirements (monitoring, logging, debugging)
+
+   - **Business Dimensions**:
+     - User experience impact
+     - Business process changes
+     - Compliance and regulatory requirements
+     - Long-term strategic alignment
+
+4. **Identify Project Architecture**
 
    - View key configuration files and structures:
      - Examine root directory structure and important configuration files (package.json, tsconfig.json, etc.)
@@ -31,7 +72,7 @@ You must complete the following sub-steps in sequence, and at the end call the `
      - Document discovered code organization methods and architectural regularities
      - Establish deep understanding of the project's technology stack and architectural characteristics
 
-3. **Collect Information**  
+5. **Collect Information**
    If there is any uncertainty or lack of confidence, **must do one of the following**:
 
    - Ask the user for clarification
@@ -55,7 +96,7 @@ You must complete the following sub-steps in sequence, and at the end call the `
    - Determine if there is overlap with existing functionality, and decide whether to "reuse" or "abstract and refactor"
    - **Do not** generate designs before checking existing code; must "check first, then design"
 
-5. **Task Type-Specific Guidelines**
+6. **Task Type-Specific Guidelines**
 
    Based on task characteristics, additionally consider the following specific guidelines:
 
@@ -79,8 +120,22 @@ You must complete the following sub-steps in sequence, and at the end call the `
      - Understand relationship handling and data validation methods
      - Check caching strategies and performance optimization techniques
 
-6. **Preliminary Solution Output**
-   - Based on the above, write a "Preliminary Design Solution":
+6. **Critical Thinking & Alternative Analysis**
+
+   - **Challenge Your Assumptions**:
+     - What assumptions are we making that might be wrong?
+     - What if the user's stated requirement isn't their actual need?
+     - Are there simpler solutions we're overlooking?
+     - What would an expert in this domain do differently?
+
+   - **Alternative Solution Exploration**:
+     - Generate at least 2-3 different approaches
+     - Consider trade-offs: simple vs. robust, fast vs. maintainable
+     - Evaluate "buy vs. build" options
+     - Consider both incremental and revolutionary approaches
+
+7. **Preliminary Solution Output**
+   - Based on the above comprehensive analysis, write a "Preliminary Design Solution":
      - Clearly mark **facts** (sources) vs **inferences** (selection basis)
      - Prohibit vague statements; must be final deliverable content
      - Ensure the solution is consistent with the project's existing architectural patterns

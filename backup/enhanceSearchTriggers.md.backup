@@ -1,0 +1,29 @@
+Enhance search trigger mechanisms through advanced conversation pattern detection and AI behavior analysis. This tool provides proactive intervention capabilities by analyzing user inputs and AI responses to determine optimal search strategies and trigger thresholds.
+
+**CORE CAPABILITIES:**
+1. Natural trigger pattern detection with lowered thresholds for better responsiveness
+2. AI response risk analysis to identify overconfidence and assumption patterns
+3. Enhanced search strategy generation with MCP tool sequencing
+4. Proactive mode enabling automatic trigger recommendations
+
+**WHEN TO USE:**
+- When implementing proactive search trigger mechanisms
+- For analyzing conversation patterns to optimize intervention timing
+- To enhance existing Force Search Protocol with natural trigger detection
+- When developing AI behavior monitoring and intervention systems
+
+**KEY FEATURES:**
+- **Natural Triggers**: Detects uncertainty expressions, research intent, help-seeking patterns
+- **AI Risk Detection**: Identifies overconfidence, assumptions, outdated references, vague statements
+- **Enhanced Strategy**: Generates prioritized MCP tool sequences with specific parameters
+- **Quality Gates**: Establishes verification criteria and compliance requirements
+
+**INTEGRATION WITH FORCE SEARCH PROTOCOL:**
+This tool complements the existing Force Search Protocol by providing:
+- Lower trigger thresholds (5 minutes vs 10 minutes)
+- Natural conversation pattern recognition
+- Proactive intervention recommendations
+- Enhanced MCP tool orchestration
+
+**OUTPUT FORMAT:**
+Returns structured analysis with risk assessment, trigger recommendations, enhanced search strategies, and quality gates for comprehensive AI behavior intervention.

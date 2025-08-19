@@ -1,69 +1,107 @@
 import { z } from "zod";
 
-// 强制搜索协议工具 - AI行为干预系统 v3.0
-// Force Search Protocol Tool - AI Behavior Intervention System v3.0
+/**
+ * Force Search Protocol - MCP-compliant AI behavior intervention tool
+ * Analyzes conversation patterns and generates mandatory search strategies
+ * for evidence-based AI responses
+ */
+
 export const forceSearchProtocolSchema = z.object({
   conversationContext: z
     .string()
     .min(10, {
-      message: "对话上下文不能少于10个字符，请提供完整的上下文信息",
+      message: "Conversation context must be at least 10 characters",
     })
-    .describe("当前对话的完整上下文，包括用户问题、AI回答、技术讨论等内容"),
-  
+    .describe("Complete conversation context including user questions, AI responses, and technical discussions"),
+
   problemDescription: z
     .string()
     .min(5, {
-      message: "问题描述不能少于5个字符，请提供明确的问题描述",
+      message: "Problem description must be at least 5 characters",
     })
-    .describe("当前面临的技术问题或需要解决的具体问题"),
-  
+    .describe("Current technical problem or specific issue requiring resolution"),
+
   currentApproach: z
     .string()
     .optional()
-    .describe("当前采用的解决方案或技术方法"),
-  
+    .describe("Current solution approach or technical method being used"),
+
   uncertaintyLevel: z
     .enum(["low", "medium", "high"])
-    .describe("对当前解决方案的不确定性级别评估"),
-  
+    .describe("Uncertainty level assessment for current solution approach"),
+
   errorCount: z
     .number()
     .min(0)
     .optional()
     .default(0)
-    .describe("相同错误或方法的重复次数"),
+    .describe("Number of repeated errors or failed attempts with same method"),
 });
 
-// 语义模式检测器
-// Semantic Pattern Detector
+/**
+ * Enhanced semantic pattern detector for AI behavior analysis with cognitive bias detection
+ */
 class SemanticPatternDetector {
-  // 过度乐观表述模式
   private static OVERCONFIDENT_PATTERNS = [
     /perfectly fine|no problems?|simple fix|easy solution|straightforward/gi,
     /should work|will work|definitely|certainly|obviously/gi,
     /just need to|simply|merely|only need/gi,
+    /everything looks good|all tests passing|working correctly/gi,
+    /没问题|很简单|肯定可以|绝对没错|完全正常/gi,
   ];
 
-  // 不确定性表达模式
   private static UNCERTAINTY_PATTERNS = [
     /I think|I believe|I assume|probably|might be|could be/gi,
-    /我认为|我觉得|我想|可能|也许|应该是|大概/gi,
     /seems like|appears to|looks like|based on my knowledge/gi,
-    /据我所知|根据我的知识|通常|一般来说/gi,
+    /不确定|不知道|不清楚|不太确定|不太清楚/gi,
+    /uncertain|unsure|not sure|don't know|unclear/gi,
+    /是否是|是不是|会不会|能不能/gi,
   ];
 
-  // 错误方向持续模式
   private static ERROR_PERSISTENCE_PATTERNS = [
     /try again|continue|keep trying|same approach/gi,
     /let's try|another attempt|one more time/gi,
-    /再试|继续|保持|同样的方法/gi,
+    /继续尝试|再试一次|坚持当前|同样的方法/gi,
+    /persist|maintain|stick with|keep going/gi,
   ];
 
-  // 问题简化倾向模式
   private static OVERSIMPLIFICATION_PATTERNS = [
     /it's just|simply|basic|trivial|straightforward/gi,
-    /只是|简单|基本|直接|容易/gi,
     /no need to|don't need|unnecessary/gi,
+    /只需要|很简单|基础的|不复杂|直接/gi,
+    /avoid complexity|skip details|ignore edge cases/gi,
+  ];
+
+  // 新增：错误方向卡死检测模式
+  private static ERROR_DIRECTION_STUCK_PATTERNS = [
+    /same error|repeated failure|stuck on|not working again/gi,
+    /tried multiple times|keep failing|still broken/gi,
+    /相同错误|重复失败|一直卡在|还是不行/gi,
+    /tried \d+ times|attempt \d+|failure \d+/gi,
+  ];
+
+  // 新增：虚假成功报告检测模式
+  private static FALSE_SUCCESS_PATTERNS = [
+    /looks like it works|seems to be working|appears successful/gi,
+    /should be fine now|probably fixed|likely resolved/gi,
+    /看起来成功了|似乎解决了|应该没问题了/gi,
+    /without actual testing|without verification|assuming it works/gi,
+  ];
+
+  // 新增：假设性判断检测模式
+  private static ASSUMPTION_BASED_PATTERNS = [
+    /I think this code|I believe the implementation|based on my understanding/gi,
+    /the code should|this implementation should|it's reasonable to assume/gi,
+    /我认为这个代码|我觉得这个实现|根据我的理解/gi,
+    /without checking|without looking at|based on memory/gi,
+  ];
+
+  // 新增：复杂性回避检测模式
+  private static COMPLEXITY_AVOIDANCE_PATTERNS = [
+    /let's keep it simple|avoid overcomplicating|simple approach/gi,
+    /placeholder|TODO|will implement later|basic version/gi,
+    /保持简单|避免复杂|简单方法|占位符|稍后实现/gi,
+    /mock implementation|dummy data|fake response/gi,
   ];
 
   static analyzeContext(context: string): {
@@ -71,171 +109,501 @@ class SemanticPatternDetector {
     hasUncertainty: boolean;
     hasErrorPersistence: boolean;
     hasOversimplification: boolean;
+    hasErrorDirectionStuck: boolean;
+    hasFalseSuccess: boolean;
+    hasAssumptionBased: boolean;
+    hasComplexityAvoidance: boolean;
     detectedPatterns: string[];
     riskLevel: "low" | "medium" | "high";
+    cognitiveRiskFactors: string[];
+    frameworkBreakRequired: boolean;
   } {
     const detectedPatterns: string[] = [];
+    const cognitiveRiskFactors: string[] = [];
     let riskScore = 0;
 
-    // 检测过度乐观
     const overconfidenceMatches = this.OVERCONFIDENT_PATTERNS.some(pattern => {
       const matches = context.match(pattern);
       if (matches) {
-        detectedPatterns.push(`过度乐观: ${matches.join(", ")}`);
+        detectedPatterns.push(`Overconfidence: ${matches.join(", ")}`);
+        cognitiveRiskFactors.push("OVERCONFIDENCE_BIAS");
         riskScore += 2;
         return true;
       }
       return false;
     });
 
-    // 检测不确定性
     const uncertaintyMatches = this.UNCERTAINTY_PATTERNS.some(pattern => {
       const matches = context.match(pattern);
       if (matches) {
-        detectedPatterns.push(`不确定性表达: ${matches.join(", ")}`);
+        detectedPatterns.push(`Uncertainty: ${matches.join(", ")}`);
         riskScore += 1;
         return true;
       }
       return false;
     });
 
-    // 检测错误持续
     const errorPersistenceMatches = this.ERROR_PERSISTENCE_PATTERNS.some(pattern => {
       const matches = context.match(pattern);
       if (matches) {
-        detectedPatterns.push(`错误方向持续: ${matches.join(", ")}`);
+        detectedPatterns.push(`Error persistence: ${matches.join(", ")}`);
+        cognitiveRiskFactors.push("ERROR_DIRECTION_PERSISTENCE");
         riskScore += 3;
         return true;
       }
       return false;
     });
 
-    // 检测过度简化
     const oversimplificationMatches = this.OVERSIMPLIFICATION_PATTERNS.some(pattern => {
       const matches = context.match(pattern);
       if (matches) {
-        detectedPatterns.push(`问题简化倾向: ${matches.join(", ")}`);
+        detectedPatterns.push(`Oversimplification: ${matches.join(", ")}`);
+        cognitiveRiskFactors.push("COMPLEXITY_AVOIDANCE");
+        riskScore += 1;
+        return true;
+      }
+      return false;
+    });
+
+    // 新增：错误方向卡死检测
+    const errorDirectionStuckMatches = this.ERROR_DIRECTION_STUCK_PATTERNS.some(pattern => {
+      const matches = context.match(pattern);
+      if (matches) {
+        detectedPatterns.push(`Error Direction Stuck: ${matches.join(", ")}`);
+        cognitiveRiskFactors.push("ERROR_DIRECTION_STUCK");
+        riskScore += 4; // 高风险
+        return true;
+      }
+      return false;
+    });
+
+    // 新增：虚假成功报告检测
+    const falseSuccessMatches = this.FALSE_SUCCESS_PATTERNS.some(pattern => {
+      const matches = context.match(pattern);
+      if (matches) {
+        detectedPatterns.push(`False Success Report: ${matches.join(", ")}`);
+        cognitiveRiskFactors.push("FALSE_SUCCESS_REPORTING");
+        riskScore += 3;
+        return true;
+      }
+      return false;
+    });
+
+    // 新增：假设性判断检测
+    const assumptionBasedMatches = this.ASSUMPTION_BASED_PATTERNS.some(pattern => {
+      const matches = context.match(pattern);
+      if (matches) {
+        detectedPatterns.push(`Assumption-Based Judgment: ${matches.join(", ")}`);
+        cognitiveRiskFactors.push("ASSUMPTION_BASED_REASONING");
         riskScore += 2;
         return true;
       }
       return false;
     });
 
-    // 计算风险级别
+    // 新增：复杂性回避检测
+    const complexityAvoidanceMatches = this.COMPLEXITY_AVOIDANCE_PATTERNS.some(pattern => {
+      const matches = context.match(pattern);
+      if (matches) {
+        detectedPatterns.push(`Complexity Avoidance: ${matches.join(", ")}`);
+        cognitiveRiskFactors.push("COMPLEXITY_AVOIDANCE");
+        riskScore += 2;
+        return true;
+      }
+      return false;
+    });
+
     let riskLevel: "low" | "medium" | "high" = "low";
-    if (riskScore >= 5) riskLevel = "high";
-    else if (riskScore >= 2) riskLevel = "medium";
+    if (riskScore >= 5) {
+      riskLevel = "high";
+    } else if (riskScore >= 3) {
+      riskLevel = "medium";
+    }
+
+    // 判断是否需要强制跳出思维框架
+    const frameworkBreakRequired = errorDirectionStuckMatches ||
+                                  falseSuccessMatches ||
+                                  (assumptionBasedMatches && complexityAvoidanceMatches) ||
+                                  riskScore >= 6;
 
     return {
       hasOverconfidence: overconfidenceMatches,
       hasUncertainty: uncertaintyMatches,
       hasErrorPersistence: errorPersistenceMatches,
       hasOversimplification: oversimplificationMatches,
+      hasErrorDirectionStuck: errorDirectionStuckMatches,
+      hasFalseSuccess: falseSuccessMatches,
+      hasAssumptionBased: assumptionBasedMatches,
+      hasComplexityAvoidance: complexityAvoidanceMatches,
       detectedPatterns,
       riskLevel,
+      cognitiveRiskFactors,
+      frameworkBreakRequired,
     };
   }
 }
 
-// 搜索策略生成器
-// Search Strategy Generator
+/**
+ * Intelligent keyword generator for progressive search strategies
+ */
+class IntelligentKeywordGenerator {
+  static generateProgressiveKeywords(problemDescription: string): {
+    coreKeywords: string[];
+    expandedKeywords: string[];
+    technicalKeywords: string[];
+    contextualKeywords: string[];
+  } {
+    const text = problemDescription.toLowerCase();
+    
+    const technicalTerms = [
+      'mcp', 'typescript', 'javascript', 'node', 'npm', 'api', 'server', 'client',
+      'database', 'sql', 'json', 'http', 'rest', 'graphql', 'websocket', 'auth',
+      'react', 'vue', 'angular', 'express', 'fastify', 'next', 'nuxt', 'svelte',
+      'docker', 'kubernetes', 'aws', 'azure', 'gcp', 'github', 'git', 'ci/cd',
+      'test', 'jest', 'vitest', 'cypress', 'playwright', 'webpack', 'vite', 'rollup'
+    ];
+    
+    const coreKeywords = text
+      .split(/\s+/)
+      .filter(word => word.length > 2)
+      .filter(word => technicalTerms.includes(word) || word.length > 4)
+      .slice(0, 3);
+    
+    const expandedKeywords = text
+      .split(/\s+/)
+      .filter(word => word.length > 3)
+      .slice(0, 5);
+    
+    const technicalKeywords = technicalTerms.filter(term => text.includes(term));
+    
+    const contextualKeywords = [
+      ...coreKeywords,
+      '2025', 'latest', 'best practices', 'solution', 'implementation'
+    ];
+    
+    return {
+      coreKeywords,
+      expandedKeywords,
+      technicalKeywords,
+      contextualKeywords
+    };
+  }
+}
+
+/**
+ * Search strategy generator with intelligent prioritization
+ */
 class SearchStrategyGenerator {
+  static determineSearchPriority(
+    analysis: ReturnType<typeof SemanticPatternDetector.analyzeContext>,
+    errorCount: number,
+    problemDescription: string
+  ): "IMMEDIATE" | "HIGH" | "MEDIUM" | "LOW" {
+    const isProjectRelated = /mcp|shrimp|task|manager|github|repository/i.test(problemDescription);
+    const isTechnicalComplex = /error|fail|bug|issue|problem|troubleshoot|debug|configuration|optimization|performance|integration|deployment|setup/i.test(problemDescription);
+    const isSimpleQuery = /javascript|array|method|basic|concept|explanation/i.test(problemDescription) &&
+                         !isTechnicalComplex &&
+                         errorCount === 0;
+
+    // 强制跳出思维框架的情况 - 最高优先级
+    if (analysis.frameworkBreakRequired || analysis.hasErrorDirectionStuck || analysis.hasFalseSuccess) {
+      return "IMMEDIATE";
+    }
+
+    // 高认知风险情况
+    if (analysis.riskLevel === "high" || errorCount >= 2 ||
+        (analysis.hasAssumptionBased && analysis.hasComplexityAvoidance)) {
+      return "IMMEDIATE";
+    }
+
+    // 中等认知风险情况
+    else if ((analysis.riskLevel === "medium" && errorCount >= 1) ||
+             (isTechnicalComplex && errorCount >= 1) ||
+             isProjectRelated ||
+             analysis.hasAssumptionBased ||
+             analysis.hasComplexityAvoidance) {
+      return "HIGH";
+    }
+
+    // 简单查询但有认知偏差
+    else if (isSimpleQuery && !analysis.hasUncertainty && !analysis.hasOverconfidence &&
+             analysis.cognitiveRiskFactors.length === 0) {
+      return "LOW";
+    }
+
+    // 其他不确定性或过度自信情况
+    else if (analysis.hasUncertainty || analysis.hasOverconfidence || isProjectRelated) {
+      return "MEDIUM";
+    }
+
+    return "LOW";
+  }
+
   static generateSearchPlan(
     problemDescription: string,
     analysis: ReturnType<typeof SemanticPatternDetector.analyzeContext>,
     errorCount: number
   ): {
-    searchKeywords: string[];
+    searchKeywords: ReturnType<typeof IntelligentKeywordGenerator.generateProgressiveKeywords>;
     mcpToolCalls: Array<{
       tool: string;
       priority: number;
       parameters: Record<string, any>;
       rationale: string;
+      timeout: number;
+      expectedQuality: "HIGH" | "MEDIUM" | "LOW";
     }>;
     verificationRequirements: string[];
+    searchPriority: "IMMEDIATE" | "HIGH" | "MEDIUM" | "LOW";
+    qualityGates: string[];
   } {
-    const searchKeywords: string[] = [];
+    const searchKeywords = IntelligentKeywordGenerator.generateProgressiveKeywords(problemDescription);
     const mcpToolCalls: Array<{
       tool: string;
       priority: number;
       parameters: Record<string, any>;
       rationale: string;
+      timeout: number;
+      expectedQuality: "HIGH" | "MEDIUM" | "LOW";
     }> = [];
     const verificationRequirements: string[] = [];
-
-    // 基于问题描述生成关键词
-    const problemKeywords = problemDescription
-      .toLowerCase()
-      .split(/\s+/)
-      .filter(word => word.length > 3)
-      .slice(0, 5);
+    const qualityGates: string[] = [];
     
-    searchKeywords.push(...problemKeywords, "2025", "latest", "best practices");
+    const searchPriority = this.determineSearchPriority(analysis, errorCount, problemDescription);
+    const { coreKeywords, technicalKeywords } = searchKeywords;
+    
+    if (searchPriority === "IMMEDIATE") {
+      // 强制框架跳出序列
+      if (analysis.frameworkBreakRequired) {
+        mcpToolCalls.push(
+          {
+            tool: "codebase-retrieval",
+            priority: 1,
+            parameters: {
+              information_request: `${problemDescription} CRITICAL REALITY CHECK - actual implementation state, error patterns, failed approaches`,
+            },
+            rationale: "🚨 FRAMEWORK BREAK: MANDATORY Reality Check - Challenge ALL assumptions about current code state",
+            timeout: 30000,
+            expectedQuality: "HIGH",
+          },
+          {
+            tool: "github-local-search_issues_mcphub-all-services",
+            priority: 2,
+            parameters: {
+              q: `${coreKeywords.join(" ")} error failed stuck`,
+              state: "all",
+              per_page: 5,
+            },
+            rationale: "🚨 ERROR PATTERN ANALYSIS: Find similar failure cases and their solutions",
+            timeout: 25000,
+            expectedQuality: "HIGH",
+          },
+          {
+            tool: "web_search_exa_exa-mcp-server",
+            priority: 3,
+            parameters: {
+              query: `${coreKeywords.join(" ")} common mistakes pitfalls troubleshooting 2025`,
+              numResults: 5,
+            },
+            rationale: "🚨 ANTI-PATTERN SEARCH: Find what NOT to do and common failure modes",
+            timeout: 20000,
+            expectedQuality: "HIGH",
+          },
+          {
+            tool: "tavily_search_tavily-remote-mcp",
+            priority: 4,
+            parameters: {
+              query: `${coreKeywords.join(" ")} debugging methodology systematic approach`,
+              search_depth: "advanced",
+              max_results: 3,
+            },
+            rationale: "🚨 SYSTEMATIC DEBUGGING: Find structured problem-solving approaches",
+            timeout: 30000,
+            expectedQuality: "HIGH",
+          }
+        );
+      } else {
+        // 标准IMMEDIATE序列
+        mcpToolCalls.push(
+          {
+            tool: "codebase-retrieval",
+            priority: 1,
+            parameters: {
+              information_request: `${problemDescription} actual implementation current state`,
+            },
+            rationale: "MANDATORY Codebase Reality Check: Get ACTUAL code state, not assumptions",
+            timeout: 30000,
+            expectedQuality: "HIGH",
+          },
+          {
+            tool: "github-local-search_code_mcphub-all-services",
+            priority: 2,
+            parameters: {
+              q: `${coreKeywords.join(" ")} ${technicalKeywords.join(" ")}`,
+              per_page: 5,
+            },
+            rationale: "GitHub Code Search: Find actual implementations and solutions",
+            timeout: 25000,
+            expectedQuality: "HIGH",
+          },
+          {
+            tool: "web_search_exa_exa-mcp-server",
+            priority: 3,
+            parameters: {
+              query: `${coreKeywords.join(" ")} 2025 latest solution`,
+              numResults: 5,
+            },
+            rationale: "Technical Documentation Search: Find authoritative technical solutions",
+            timeout: 20000,
+            expectedQuality: "HIGH",
+          },
+          {
+            tool: "tavily_search_tavily-remote-mcp",
+            priority: 4,
+            parameters: {
+              query: `${coreKeywords.join(" ")} tutorial solution 2025`,
+              search_depth: "advanced",
+              max_results: 3,
+            },
+            rationale: "Current Solutions Search: Get 2025-current solutions and best practices",
+            timeout: 30000,
+            expectedQuality: "MEDIUM",
+          }
+        );
+      }
 
-    // 基于风险级别和模式生成搜索策略
-    if (analysis.riskLevel === "high" || errorCount >= 2) {
-      // 高风险：强制多源搜索
+      if (analysis.frameworkBreakRequired) {
+        verificationRequirements.push(
+          "🚨 CRITICAL: MUST challenge ALL current assumptions and approaches",
+          "🚨 MANDATORY: Find evidence that CONTRADICTS current thinking",
+          "🚨 REQUIRED: Identify what has been WRONG in previous attempts",
+          "🚨 ESSENTIAL: Provide alternative approaches that avoid current error patterns",
+          "MUST provide at least 3 different sources of 2025 latest information",
+          "MUST include specific failure cases and their solutions"
+        );
+
+        qualityGates.push(
+          "🚨 FRAMEWORK BREAK: Must find evidence contradicting current approach",
+          "🚨 ERROR ANALYSIS: Must identify specific failure patterns",
+          "🚨 ALTERNATIVE PATHS: Must provide completely different approaches",
+          "Sources must include troubleshooting and debugging methodologies"
+        );
+      } else {
+        verificationRequirements.push(
+          "MUST provide at least 3 different sources of 2025 latest information",
+          "MUST include specific code examples or implementation cases",
+          "MUST verify solution effectiveness and currency",
+          "MUST prioritize GitHub and official documentation sources"
+        );
+
+        qualityGates.push(
+          "Each search result must be relevant to the core problem",
+          "Sources must be from 2025 or latest available",
+          "Must include at least one working code example"
+        );
+      }
+      
+    } else if (searchPriority === "HIGH") {
       mcpToolCalls.push(
         {
-          tool: "web_search_exa_exa-mcp-server",
+          tool: "codebase-retrieval",
           priority: 1,
           parameters: {
-            query: `${problemDescription} 2025 latest solution`,
-            numResults: 5,
+            information_request: `${problemDescription} related implementation`,
           },
-          rationale: "高风险检测：需要最新权威信息验证",
+          rationale: "Codebase Analysis: Check existing implementation patterns",
+          timeout: 25000,
+          expectedQuality: "HIGH",
         },
         {
-          tool: "github-local-search_code_mcphub-all-services",
+          tool: "github-local-search_repositories_mcphub-all-services",
           priority: 2,
           parameters: {
-            q: `${problemKeywords.join(" ")} language:typescript language:javascript`,
+            query: `${coreKeywords.join(" ")} ${technicalKeywords.join(" ")}`,
+            perPage: 5,
           },
-          rationale: "代码实例验证：查找实际实现案例",
+          rationale: "GitHub Repository Search: Find relevant projects and solutions",
+          timeout: 20000,
+          expectedQuality: "HIGH",
         },
         {
-          tool: "tavily_search_tavily-remote-mcp",
+          tool: "web_search_exa_exa-mcp-server",
           priority: 3,
           parameters: {
-            query: `${problemDescription} troubleshooting guide 2025`,
-            search_depth: "advanced",
-            max_results: 3,
-          },
-          rationale: "深度技术搜索：获取故障排除指南",
-        }
-      );
-
-      verificationRequirements.push(
-        "必须提供至少3个不同来源的2025年最新信息",
-        "必须包含具体的代码示例或实现案例",
-        "必须验证解决方案的有效性和时效性"
-      );
-    } else if (analysis.riskLevel === "medium") {
-      // 中等风险：标准搜索验证
-      mcpToolCalls.push(
-        {
-          tool: "web_search_exa_exa-mcp-server",
-          priority: 1,
-          parameters: {
-            query: `${problemDescription} best practices 2025`,
+            query: `${coreKeywords.join(" ")} best practices 2025`,
             numResults: 3,
           },
-          rationale: "中等风险：验证最佳实践",
-        },
-        {
-          tool: "context7-mcp-get-library-docs_mcphub-all-services",
-          priority: 2,
-          parameters: {
-            context7CompatibleLibraryID: "相关技术栈ID",
-            topic: problemKeywords.join(" "),
-          },
-          rationale: "官方文档验证：确保方案准确性",
+          rationale: "Best Practices Verification: Validate current approach",
+          timeout: 15000,
+          expectedQuality: "MEDIUM",
         }
       );
 
       verificationRequirements.push(
-        "必须提供至少2个权威来源的验证",
-        "必须确认信息的时效性（2025年有效）"
+        "MUST provide at least 2 authoritative sources for verification",
+        "MUST confirm information currency (2025 valid)",
+        "MUST include GitHub or official documentation sources"
+      );
+      
+      qualityGates.push(
+        "Sources must be authoritative and recent",
+        "Must include practical implementation guidance"
+      );
+      
+    } else if (searchPriority === "MEDIUM") {
+      mcpToolCalls.push(
+        {
+          tool: "codebase-retrieval",
+          priority: 1,
+          parameters: {
+            information_request: `${problemDescription} implementation check`,
+          },
+          rationale: "Codebase Check: Verify existing patterns",
+          timeout: 20000,
+          expectedQuality: "MEDIUM",
+        },
+        {
+          tool: "web_search_exa_exa-mcp-server",
+          priority: 2,
+          parameters: {
+            query: `${coreKeywords.join(" ")} 2025`,
+            numResults: 2,
+          },
+          rationale: "Quick Verification: Check current best practices",
+          timeout: 15000,
+          expectedQuality: "MEDIUM",
+        }
+      );
+
+      verificationRequirements.push(
+        "SHOULD provide at least 1 authoritative source",
+        "SHOULD confirm basic approach validity"
+      );
+      
+      qualityGates.push(
+        "Basic relevance check required"
+      );
+      
+    } else {
+      mcpToolCalls.push(
+        {
+          tool: "codebase-retrieval",
+          priority: 1,
+          parameters: {
+            information_request: `${problemDescription} quick check`,
+          },
+          rationale: "Quick Codebase Check: Basic pattern verification",
+          timeout: 15000,
+          expectedQuality: "LOW",
+        }
+      );
+
+      verificationRequirements.push(
+        "OPTIONAL: Basic verification recommended"
+      );
+      
+      qualityGates.push(
+        "Minimal quality check"
       );
     }
 
@@ -243,6 +611,123 @@ class SearchStrategyGenerator {
       searchKeywords,
       mcpToolCalls,
       verificationRequirements,
+      searchPriority,
+      qualityGates,
+    };
+  }
+}
+
+/**
+ * Search result evaluator for quality assessment
+ */
+class SearchResultEvaluator {
+  static evaluateSearchQuality(
+    results: any[],
+    expectedQuality: "HIGH" | "MEDIUM" | "LOW",
+    keywords: string[]
+  ): {
+    qualityScore: number;
+    relevanceScore: number;
+    authorityScore: number;
+    currencyScore: number;
+    recommendations: string[];
+  } {
+    if (!results || results.length === 0) {
+      return {
+        qualityScore: 0,
+        relevanceScore: 0,
+        authorityScore: 0,
+        currencyScore: 0,
+        recommendations: ["No results found - consider broader keywords"]
+      };
+    }
+
+    let relevanceScore = 0;
+    let authorityScore = 0;
+    let currencyScore = 0;
+    const recommendations: string[] = [];
+
+    results.forEach(result => {
+      const text = (result.title + " " + result.description + " " + result.content).toLowerCase();
+      const keywordMatches = keywords.filter(keyword => text.includes(keyword.toLowerCase()));
+      relevanceScore += keywordMatches.length / keywords.length;
+    });
+    relevanceScore = relevanceScore / results.length;
+
+    const authorityDomains = ['github.com', 'stackoverflow.com', 'docs.', 'official', 'mozilla.org'];
+    results.forEach(result => {
+      const url = result.url || result.link || '';
+      if (authorityDomains.some(domain => url.includes(domain))) {
+        authorityScore += 1;
+      }
+    });
+    authorityScore = authorityScore / results.length;
+
+    results.forEach(result => {
+      const text = (result.title + " " + result.description + " " + result.content).toLowerCase();
+      if (text.includes('2025') || text.includes('latest') || text.includes('current')) {
+        currencyScore += 1;
+      }
+    });
+    currencyScore = currencyScore / results.length;
+
+    const qualityScore = (relevanceScore * 0.4 + authorityScore * 0.3 + currencyScore * 0.3);
+
+    if (relevanceScore < 0.5) {
+      recommendations.push("Consider refining keywords for better relevance");
+    }
+    if (authorityScore < 0.3) {
+      recommendations.push("Seek more authoritative sources (GitHub, official docs)");
+    }
+    if (currencyScore < 0.3) {
+      recommendations.push("Look for more recent (2025) information");
+    }
+
+    return {
+      qualityScore,
+      relevanceScore,
+      authorityScore,
+      currencyScore,
+      recommendations
+    };
+  }
+
+  static adjustSearchStrategy(
+    currentResults: any[],
+    originalKeywords: string[],
+    searchPriority: "IMMEDIATE" | "HIGH" | "MEDIUM" | "LOW"
+  ): {
+    adjustedKeywords: string[];
+    nextSearchTools: string[];
+    strategyChanges: string[];
+  } {
+    const evaluation = this.evaluateSearchQuality(currentResults, "HIGH", originalKeywords);
+    const adjustedKeywords = [...originalKeywords];
+    const nextSearchTools: string[] = [];
+    const strategyChanges: string[] = [];
+
+    if (evaluation.qualityScore < 0.6) {
+      if (evaluation.relevanceScore < 0.5) {
+        adjustedKeywords.push("implementation", "tutorial", "example");
+        strategyChanges.push("Added more specific technical keywords");
+      }
+
+      if (evaluation.authorityScore < 0.3) {
+        nextSearchTools.push("github-local-search_repositories_mcphub-all-services");
+        nextSearchTools.push("context7-mcp-get-library-docs_mcphub-all-services");
+        strategyChanges.push("Prioritizing authoritative sources");
+      }
+
+      if (evaluation.currencyScore < 0.3) {
+        adjustedKeywords.push("2025", "latest", "current");
+        strategyChanges.push("Emphasizing recent information");
+      }
+    }
+
+    return {
+      adjustedKeywords,
+      nextSearchTools,
+      strategyChanges
     };
   }
 }
@@ -254,81 +739,90 @@ export async function forceSearchProtocol({
   uncertaintyLevel,
   errorCount = 0,
 }: z.infer<typeof forceSearchProtocolSchema>) {
-  // 执行语义分析
   const semanticAnalysis = SemanticPatternDetector.analyzeContext(
     `${conversationContext} ${currentApproach}`
   );
 
-  // 生成搜索策略
   const searchPlan = SearchStrategyGenerator.generateSearchPlan(
     problemDescription,
     semanticAnalysis,
     errorCount
   );
 
-  // 批判思维检查点
   const criticalThinkingChecklist = [
-    "🔍 假设挑战：当前解决方案基于哪些假设？这些假设是否经过验证？",
-    "⚠️ 偏差检测：是否存在确认偏差或过度自信？是否忽略了潜在问题？",
-    "📊 客观验证：是否有客观证据支持当前方案？信息来源是否权威且最新？",
+    "🚨 FRAMEWORK BREAK CHECK: Are you stuck in the same error direction? Have you been trying the same approach repeatedly?",
+    "🚨 REALITY VERIFICATION: Have you checked the ACTUAL code state using Augment Context Engine? Stop relying on memory or assumptions!",
+    "🚨 FALSE SUCCESS DETECTION: Are you claiming success without actual testing? Are you being overly optimistic about results?",
+    "🚨 COMPLEXITY HONESTY: Are you avoiding complexity with placeholder implementations? Are you using fake data or mock responses?",
+    "ASSUMPTION CHALLENGE: What assumptions is your current solution based on? Have these assumptions been verified with real code?",
+    "BIAS DETECTION: Is there confirmation bias or overconfidence? Are you ignoring potential problems or failure scenarios?",
+    "OBJECTIVE VERIFICATION: Is there objective evidence supporting your current approach? Are information sources authoritative and current?",
+    "ERROR DIRECTION ANALYSIS: If this approach has failed before, why are you continuing? What evidence suggests it will work now?",
   ];
 
-  // 构建强制性响应
   const response = {
     analysisResult: {
       riskLevel: semanticAnalysis.riskLevel,
       detectedPatterns: semanticAnalysis.detectedPatterns,
-      recommendedAction: semanticAnalysis.riskLevel === "high" 
-        ? "MANDATORY_SEARCH_REQUIRED" 
-        : semanticAnalysis.riskLevel === "medium"
+      cognitiveRiskFactors: semanticAnalysis.cognitiveRiskFactors,
+      frameworkBreakRequired: semanticAnalysis.frameworkBreakRequired,
+      searchPriority: searchPlan.searchPriority,
+      recommendedAction: semanticAnalysis.frameworkBreakRequired
+        ? "🚨 CRITICAL_FRAMEWORK_BREAK_REQUIRED"
+        : searchPlan.searchPriority === "IMMEDIATE"
+        ? "MANDATORY_SEARCH_REQUIRED"
+        : searchPlan.searchPriority === "HIGH"
+        ? "HIGH_PRIORITY_VERIFICATION_REQUIRED"
+        : searchPlan.searchPriority === "MEDIUM"
         ? "VERIFICATION_RECOMMENDED"
         : "PROCEED_WITH_CAUTION",
+      cognitiveInterventions: semanticAnalysis.frameworkBreakRequired
+        ? [
+            "STOP current approach immediately",
+            "Challenge ALL assumptions about the problem",
+            "Seek evidence that contradicts current thinking",
+            "Find alternative approaches that avoid current error patterns",
+            "Use systematic debugging methodology"
+          ]
+        : [],
     },
     searchStrategy: searchPlan,
     criticalThinkingChecklist,
     mandatoryRequirements: [
-      "🚫 禁止基于预训练知识的假设性回答",
-      "✅ 必须完成所有推荐的MCP工具调用",
-      "📝 必须提供具体的引用和来源",
-      "🔄 如果搜索结果与当前方案冲突，必须重新评估",
+      "🚨 PROHIBIT ALL assumptions - MUST verify with Augment Context Engine (codebase-retrieval)",
+      "🚨 PROHIBIT continuing in error direction - MUST stop and reassess if same approach failed before",
+      "🚨 PROHIBIT false success claims - MUST provide actual test results and verification",
+      "🚨 PROHIBIT complexity avoidance - NO placeholder implementations, mock data, or TODO comments",
+      "🚨 PROHIBIT memory-based reasoning - MUST use actual code content and running results",
+      "MUST complete all recommended MCP tool calls in priority order",
+      "MUST provide specific citations and sources with authority ratings",
+      "MUST re-evaluate if search results conflict with current approach",
+      "MUST prioritize GitHub and official documentation sources",
+      "MUST respect search timeouts and quality expectations",
+      "MUST seek contradictory evidence and failure scenarios for each solution",
     ],
-    nextSteps: semanticAnalysis.riskLevel === "high" 
-      ? "立即执行强制搜索，暂停当前方案直到验证完成"
-      : "建议执行验证搜索，然后继续当前方案",
+    qualityAssurance: {
+      searchPriority: searchPlan.searchPriority,
+      qualityGates: searchPlan.qualityGates,
+      expectedSources: searchPlan.searchPriority === "IMMEDIATE" ? "3+ authoritative sources" :
+                      searchPlan.searchPriority === "HIGH" ? "2+ authoritative sources" :
+                      searchPlan.searchPriority === "MEDIUM" ? "1+ authoritative source" : "Optional verification",
+      timeoutPolicy: "Respect individual tool timeouts, fail gracefully if needed",
+    },
+    nextSteps: searchPlan.searchPriority === "IMMEDIATE" 
+      ? "IMMEDIATELY execute mandatory search sequence, suspend current approach until verification complete"
+      : searchPlan.searchPriority === "HIGH"
+      ? "Execute high-priority verification search, then proceed with validated approach"
+      : searchPlan.searchPriority === "MEDIUM"
+      ? "Execute basic verification search, then continue current approach"
+      : "Optional verification recommended, proceed with current approach",
   };
 
   return {
     content: [
       {
         type: "text" as const,
-        text: `# Force Search Protocol v3.0 分析结果
-
-## 🚨 风险评估
-- **风险级别**: ${response.analysisResult.riskLevel.toUpperCase()}
-- **检测到的模式**: ${response.analysisResult.detectedPatterns.join("; ")}
-- **推荐行动**: ${response.analysisResult.recommendedAction}
-
-## 🔍 强制搜索策略
-${response.searchStrategy.mcpToolCalls.map(call => 
-  `### ${call.priority}. ${call.tool}
-- **参数**: ${JSON.stringify(call.parameters, null, 2)}
-- **理由**: ${call.rationale}`
-).join("\n\n")}
-
-## ✅ 批判思维检查点
-${response.criticalThinkingChecklist.map(item => `- ${item}`).join("\n")}
-
-## 📋 强制性要求
-${response.mandatoryRequirements.map(req => `- ${req}`).join("\n")}
-
-## 🔄 验证要求
-${response.searchStrategy.verificationRequirements.map(req => `- ${req}`).join("\n")}
-
-## 🎯 下一步行动
-${response.nextSteps}
-
----
-**重要提醒**: 此工具检测到需要外部验证的模式。请严格按照上述搜索策略执行，确保信息的准确性和时效性。`,
+        text: JSON.stringify(response, null, 2),
       },
     ],
   };

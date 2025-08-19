@@ -87,8 +87,42 @@ export async function getDataDir(forceRefresh = false, projectOverride?: string)
       .replace(/^_+|_+$/g, '')
       .substring(0, 100);
 
+    // 项目隔离逻辑：无论是否设置了 DATA_DIR 都要应用
+    // Project isolation logic: apply regardless of whether DATA_DIR is set
     if (process.env.DATA_DIR && path.isAbsolute(process.env.DATA_DIR)) {
       const projectDataDir = path.join(process.env.DATA_DIR, sanitizedProjectName);
+      cachedDataDir = projectDataDir;
+      lastRootsCall = now;
+      return cachedDataDir;
+    } else {
+      // 如果没有设置 DATA_DIR 或不是绝对路径，使用项目根目录下的项目特定目录
+      // If DATA_DIR is not set or not absolute, use project-specific directory under project root
+      let rootPath: string | null = null;
+
+      if (server) {
+        try {
+          const roots = await server.listRoots();
+          if (roots.roots && roots.roots.length > 0) {
+            const firstFileRoot = roots.roots.find((root) =>
+              root.uri.startsWith("file://")
+            );
+            if (firstFileRoot) {
+              if (process.platform === 'win32') {
+                rootPath = firstFileRoot.uri.replace("file:///", "").replace(/\//g, "\\");
+              } else {
+                rootPath = firstFileRoot.uri.replace("file://", "");
+              }
+            }
+          }
+        } catch (error) {
+          // Silently handle error
+        }
+      }
+
+      const baseDir = rootPath || PROJECT_ROOT;
+      const dataDir = process.env.DATA_DIR || "shrimpdata";
+      const projectDataDir = path.join(baseDir, dataDir, sanitizedProjectName);
+
       cachedDataDir = projectDataDir;
       lastRootsCall = now;
       return cachedDataDir;
@@ -166,15 +200,27 @@ export async function getDataDir(forceRefresh = false, projectOverride?: string)
     }
   }
 
-  // 如果沒有 DATA_DIR，使用預設邏輯
-  // If there's no DATA_DIR, use default logic
+  // 如果沒有 DATA_DIR，使用預設邏輯（包含项目隔离）
+  // If there's no DATA_DIR, use default logic (with project isolation)
+  const baseDir = rootPath || PROJECT_ROOT;
+  const dataDir = "shrimpdata";
+
+  // 对于 'main' 项目，使用根数据目录；对于其他项目，应该已经在上面处理了
+  // For 'main' project, use root data directory; other projects should have been handled above
   let finalPath: string;
-  if (rootPath) {
-    finalPath = path.join(rootPath, "data");
+
+  if (currentProject === 'main') {
+    finalPath = path.join(baseDir, dataDir);
   } else {
-    // 最後回退到專案根目錄
-    // Finally fall back to project root directory
-    finalPath = path.join(PROJECT_ROOT, "data");
+    // 这种情况不应该发生，因为非 'main' 项目应该在上面的逻辑中处理
+    // This case should not happen as non-'main' projects should be handled in the logic above
+    const sanitizedProjectName = currentProject
+      .replace(/[<>:"/\\|?*]/g, '_')
+      .replace(/\s+/g, '_')
+      .replace(/_{2,}/g, '_')
+      .replace(/^_+|_+$/g, '')
+      .substring(0, 100);
+    finalPath = path.join(baseDir, dataDir, sanitizedProjectName);
   }
 
   // 緩存結果

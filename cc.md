@@ -1,21 +1,12 @@
-现在测试增强后的Force Search Protocol v3.0：
+# AI Development Standards v3.0
 
-mcphub-all-services
-shrimp-task-manager-force_search_protocol
-taskId
-"test-critical-thinking-protocol"
-project
-"critical-thinking-test"
-errorContext
-"I think the API is working perfectly fine. The tests are passing and everything looks good. This should be a simple fix - just need to update the configuration and it will work. No problems detected."
-previousAttempts
-"tried the same approach again"
-"continued with the same method"
-"kept going with current solution"
-stuckDuration
-12
-output
-🚨 CRITICAL THINKING PROTOCOL v3.0 ACTIVATED
+**Effective Date**: 2025-08-18
+**Version**: 4.0
+**Scope**: Universal AI-assisted development practices with integrated Force Search Protocol
+**Compliance**: Mandatory for all AI development workflows
+
+## 1. AI Behavior Control Standards
+🚨 CRITICAL THINKING PROTOCOL v4.0 ACTIVATED - INTEGRATED FORCE SEARCH PROTOCOL
 
 ## ⚠️ MANDATORY COGNITIVE BIAS INTERVENTION
 **DETECTED ISSUE**: AI behavior patterns indicate potential cognitive bias and error direction persistence
@@ -127,12 +118,66 @@ REQUIREMENT: ≥3 hits showing real code
 ### 🚀 EXECUTION PROTOCOL
 **ONLY AFTER COMPLETING ALL CRITICAL THINKING STEPS:**
 
-**必须执行的MCP工具调用（按优先级顺序）：**
-1. codebase_retrieval → query: "error go"
-2. exa_mcp_server_web_search_exa → query: "error go 2025"
-3. tavily_remote_mcp_tavily_search → query: "error go tutorial solution"
+## 🔧 INTEGRATED FORCE SEARCH PROTOCOL v4.0
+**CONSOLIDATED AI BEHAVIOR INTERVENTION SYSTEM**
 
-**⚠️ REMEMBER: Each search must include contradiction-seeking and failure analysis**
+### 🎯 PROTOCOL OVERVIEW
+- **Unified Tool**: Single `force_search_protocol` replaces duplicate tools
+- **MCP Compliant**: Full snake_case naming and structured JSON output
+- **Intelligent Priority**: IMMEDIATE/HIGH/MEDIUM/LOW automatic assignment
+- **Quality Assured**: Multi-layer verification and timeout management
+
+**MANDATORY MCP TOOL SEQUENCE - Execute in Priority Order:**
+
+### 📋 STEP 0: FORCE SEARCH PROTOCOL ACTIVATION
+**BEFORE ANY MANUAL SEARCH - EXECUTE THIS MANDATORY STEP:**
+
+```
+CALL: shrimp-task-manager-force_search_protocol_mcphub-all-services
+PARAMETERS:
+  conversationContext: "[Current conversation including AI responses and user feedback]"
+  problemDescription: "[Specific technical problem requiring resolution]"
+  currentApproach: "[Current solution approach or method being used]"
+  uncertaintyLevel: "[low/medium/high based on confidence level]"
+  errorCount: "[Number of repeated errors or failed attempts]"
+PURPOSE: Generate intelligent search strategy with priority-based MCP tool orchestration
+REQUIREMENT: Must execute ALL recommended MCP tools in returned sequence
+```
+
+**AFTER FORCE SEARCH PROTOCOL - FOLLOW GENERATED STRATEGY:**
+- Execute ALL recommended MCP tool calls in priority order
+- Respect timeout settings and quality expectations
+- Apply verification requirements and quality gates
+- Follow next steps guidance based on search priority level
+
+### 🎯 FALLBACK MANUAL SEARCH SEQUENCE
+**ONLY IF Force Search Protocol FAILS - Use Manual Sequence:**
+
+1. 🥇 **Codebase Reality Check** (Priority: 10/10)
+   Tool: `codebase-retrieval`
+   Query: "[problem] actual implementation current state"
+   Purpose: Get ACTUAL code state, not assumptions
+
+2. 🥈 **GitHub Code Search** (Priority: 9/10)
+   Tool: `github-local-search_code_mcphub-all-services`
+   Query: "[core keywords] [technical keywords]"
+   Purpose: Find actual implementations and solutions
+
+3. 🥈 **Technical Documentation Search** (Priority: 8/10)
+   Tool: `web_search_exa_exa-mcp-server`
+   Query: "[problem] 2025 latest solution"
+   Purpose: Find authoritative technical solutions
+
+4. 🥉 **Current Solutions Search** (Priority: 7/10)
+   Tool: `tavily_search_tavily-remote-mcp`
+   Query: "[problem] tutorial solution 2025"
+   Purpose: Get current solutions and best practices
+
+**⚠️ CRITICAL REQUIREMENTS:**
+- MUST complete Force Search Protocol analysis first
+- MUST execute ALL recommended tools in priority order
+- MUST apply quality gates and verification requirements
+- MUST seek contradictory evidence and failure scenarios
 mcphub-all-services
 shrimp-task-manager-process_thought
 mcphub-all-services

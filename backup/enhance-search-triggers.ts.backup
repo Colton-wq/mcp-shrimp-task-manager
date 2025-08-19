@@ -1,0 +1,335 @@
+import { z } from "zod";
+import { ConversationPatternDetector } from "../intervention/conversationPatternDetector.js";
+
+/**
+ * 增强搜索触发机制 - 符合MCP规范的AI行为干预工具
+ * Enhanced Search Triggers - MCP-compliant AI Behavior Intervention Tool
+ */
+
+export const enhanceSearchTriggersSchema = z.object({
+  userInput: z
+    .string()
+    .min(5, {
+      message: "用户输入不能少于5个字符，请提供完整的用户问题或请求",
+    })
+    .describe("用户的原始输入或问题"),
+  
+  aiResponse: z
+    .string()
+    .min(10, {
+      message: "AI回答不能少于10个字符，请提供AI的完整回答内容",
+    })
+    .describe("AI助手的回答内容"),
+  
+  conversationHistory: z
+    .string()
+    .optional()
+    .default("")
+    .describe("对话历史上下文（可选）"),
+  
+  timeThreshold: z
+    .number()
+    .min(1)
+    .max(60)
+    .optional()
+    .default(5)
+    .describe("触发时间阈值（分钟），默认5分钟"),
+  
+  enableProactiveMode: z
+    .boolean()
+    .optional()
+    .default(true)
+    .describe("是否启用主动触发模式"),
+});
+
+/**
+ * 搜索策略增强器
+ * Search Strategy Enhancer
+ */
+class SearchStrategyEnhancer {
+  /**
+   * 生成增强的搜索策略
+   * Generate enhanced search strategy
+   */
+  static generateEnhancedStrategy(
+    analysis: ReturnType<typeof ConversationPatternDetector.analyzeConversationContext>,
+    userInput: string
+  ): {
+    searchPriority: "IMMEDIATE" | "HIGH" | "MEDIUM" | "LOW";
+    mcpToolSequence: Array<{
+      tool: string;
+      priority: number;
+      parameters: Record<string, any>;
+      rationale: string;
+      timeout: number;
+    }>;
+    verificationCriteria: string[];
+    qualityGates: string[];
+  } {
+    const searchPriority = this.determineSearchPriority(analysis);
+    const mcpToolSequence = this.buildMCPToolSequence(analysis, userInput, searchPriority);
+    const verificationCriteria = this.buildVerificationCriteria(analysis);
+    const qualityGates = this.buildQualityGates(analysis);
+
+    return {
+      searchPriority,
+      mcpToolSequence,
+      verificationCriteria,
+      qualityGates,
+    };
+  }
+
+  private static determineSearchPriority(
+    analysis: ReturnType<typeof ConversationPatternDetector.analyzeConversationContext>
+  ): "IMMEDIATE" | "HIGH" | "MEDIUM" | "LOW" {
+    if (analysis.overallRiskLevel === "CRITICAL") return "IMMEDIATE";
+    if (analysis.overallRiskLevel === "HIGH") return "HIGH";
+    if (analysis.overallRiskLevel === "MEDIUM") return "MEDIUM";
+    return "LOW";
+  }
+
+  private static buildMCPToolSequence(
+    analysis: ReturnType<typeof ConversationPatternDetector.analyzeConversationContext>,
+    userInput: string,
+    priority: "IMMEDIATE" | "HIGH" | "MEDIUM" | "LOW"
+  ) {
+    const sequence: Array<{
+      tool: string;
+      priority: number;
+      parameters: Record<string, any>;
+      rationale: string;
+      timeout: number;
+    }> = [];
+
+    // 提取关键词
+    const keywords = userInput
+      .toLowerCase()
+      .split(/\s+/)
+      .filter(word => word.length > 3)
+      .slice(0, 5);
+
+    if (priority === "IMMEDIATE" || priority === "HIGH") {
+      // 高优先级：强制多源搜索
+      sequence.push(
+        {
+          tool: "codebase-retrieval",
+          priority: 1,
+          parameters: {
+            information_request: `${userInput} current implementation analysis`,
+          },
+          rationale: "优先检查现有代码库实现",
+          timeout: 30000,
+        },
+        {
+          tool: "web_search_exa_exa-mcp-server",
+          priority: 2,
+          parameters: {
+            query: `${keywords.join(" ")} 2025 latest best practices`,
+            numResults: 5,
+          },
+          rationale: "获取2025年最新最佳实践",
+          timeout: 20000,
+        },
+        {
+          tool: "github-local-search_code_mcphub-all-services",
+          priority: 3,
+          parameters: {
+            q: `${keywords.join(" ")} language:typescript language:javascript`,
+            per_page: 5,
+          },
+          rationale: "查找GitHub上的实际代码实现",
+          timeout: 25000,
+        },
+        {
+          tool: "tavily_search_tavily-remote-mcp",
+          priority: 4,
+          parameters: {
+            query: `${userInput} troubleshooting guide 2025`,
+            search_depth: "advanced",
+            max_results: 3,
+          },
+          rationale: "深度技术搜索和故障排除",
+          timeout: 30000,
+        }
+      );
+    } else if (priority === "MEDIUM") {
+      // 中等优先级：标准验证搜索
+      sequence.push(
+        {
+          tool: "codebase-retrieval",
+          priority: 1,
+          parameters: {
+            information_request: userInput,
+          },
+          rationale: "检查现有代码库相关实现",
+          timeout: 20000,
+        },
+        {
+          tool: "web_search_exa_exa-mcp-server",
+          priority: 2,
+          parameters: {
+            query: `${keywords.join(" ")} best practices 2025`,
+            numResults: 3,
+          },
+          rationale: "验证最佳实践",
+          timeout: 15000,
+        }
+      );
+    }
+
+    return sequence;
+  }
+
+  private static buildVerificationCriteria(
+    analysis: ReturnType<typeof ConversationPatternDetector.analyzeConversationContext>
+  ): string[] {
+    const criteria: string[] = [];
+
+    if (analysis.overallRiskLevel === "CRITICAL" || analysis.overallRiskLevel === "HIGH") {
+      criteria.push(
+        "必须提供至少3个不同来源的2025年最新信息",
+        "必须包含具体的代码示例或实现案例",
+        "必须验证解决方案的有效性和时效性",
+        "必须提供权威来源的完整引用"
+      );
+    } else {
+      criteria.push(
+        "必须提供至少2个权威来源的验证",
+        "必须确认信息的时效性（2025年有效）"
+      );
+    }
+
+    return criteria;
+  }
+
+  private static buildQualityGates(
+    analysis: ReturnType<typeof ConversationPatternDetector.analyzeConversationContext>
+  ): string[] {
+    const gates: string[] = [
+      "所有推荐的MCP工具调用必须成功执行",
+      "搜索结果必须包含2025年的最新信息",
+      "必须提供具体的实现方案而非理论描述",
+    ];
+
+    if (analysis.aiRisks.hasOverconfidence) {
+      gates.push("必须挑战所有过度自信的假设");
+    }
+
+    if (analysis.naturalTriggers.hasTechnicalProblem) {
+      gates.push("必须提供具体的故障排除步骤");
+    }
+
+    if (analysis.naturalTriggers.hasTimeSensitivity) {
+      gates.push("必须优先提供最新的解决方案");
+    }
+
+    return gates;
+  }
+}
+
+/**
+ * 增强搜索触发机制主函数
+ * Enhanced Search Triggers Main Function
+ */
+export async function enhanceSearchTriggers({
+  userInput,
+  aiResponse,
+  conversationHistory = "",
+  timeThreshold = 5,
+  enableProactiveMode = true,
+}: z.infer<typeof enhanceSearchTriggersSchema>) {
+  // 执行对话模式分析
+  const analysis = ConversationPatternDetector.analyzeConversationContext(
+    userInput,
+    aiResponse,
+    conversationHistory
+  );
+
+  // 生成增强搜索策略
+  const strategy = SearchStrategyEnhancer.generateEnhancedStrategy(analysis, userInput);
+
+  // 构建响应
+  const response = {
+    analysisResult: {
+      overallRiskLevel: analysis.overallRiskLevel,
+      recommendedIntervention: analysis.recommendedIntervention,
+      interventionReason: analysis.interventionReason,
+      naturalTriggers: {
+        detected: analysis.naturalTriggers.detectedPatterns,
+        score: analysis.naturalTriggers.triggerScore,
+        action: analysis.naturalTriggers.recommendedAction,
+      },
+      aiRisks: {
+        detected: analysis.aiRisks.detectedRisks,
+        score: analysis.aiRisks.riskScore,
+        interventionRequired: analysis.aiRisks.interventionRequired,
+      },
+    },
+    enhancedStrategy: {
+      searchPriority: strategy.searchPriority,
+      mcpToolSequence: strategy.mcpToolSequence,
+      verificationCriteria: strategy.verificationCriteria,
+      qualityGates: strategy.qualityGates,
+    },
+    triggerRecommendations: {
+      immediateAction: strategy.searchPriority === "IMMEDIATE" || strategy.searchPriority === "HIGH",
+      proactiveMode: enableProactiveMode,
+      timeThreshold: timeThreshold,
+      nextSteps: strategy.searchPriority === "IMMEDIATE" 
+        ? "立即执行强制搜索，暂停当前回答直到验证完成"
+        : strategy.searchPriority === "HIGH"
+        ? "强烈建议执行搜索验证，然后继续回答"
+        : "建议监控后续对话，必要时触发验证",
+    },
+  };
+
+  return {
+    content: [
+      {
+        type: "text" as const,
+        text: `# Enhanced Search Triggers v3.0 分析结果
+
+## 🚨 风险评估
+- **总体风险级别**: ${response.analysisResult.overallRiskLevel}
+- **推荐干预措施**: ${response.analysisResult.recommendedIntervention}
+- **干预原因**: ${response.analysisResult.interventionReason}
+
+## 🔍 自然触发模式检测
+- **检测到的模式**: ${response.analysisResult.naturalTriggers.detected.join("; ")}
+- **触发评分**: ${response.analysisResult.naturalTriggers.score}/10
+- **推荐行动**: ${response.analysisResult.naturalTriggers.action}
+
+## ⚠️ AI风险模式检测
+- **检测到的风险**: ${response.analysisResult.aiRisks.detected.join("; ")}
+- **风险评分**: ${response.analysisResult.aiRisks.score}/10
+- **需要干预**: ${response.analysisResult.aiRisks.interventionRequired ? "是" : "否"}
+
+## 🚀 增强搜索策略
+- **搜索优先级**: ${response.enhancedStrategy.searchPriority}
+
+### MCP工具执行序列
+${response.enhancedStrategy.mcpToolSequence.map(tool => 
+  `${tool.priority}. **${tool.tool}**
+   - 参数: ${JSON.stringify(tool.parameters, null, 2)}
+   - 理由: ${tool.rationale}
+   - 超时: ${tool.timeout}ms`
+).join("\n\n")}
+
+## ✅ 验证标准
+${response.enhancedStrategy.verificationCriteria.map(criteria => `- ${criteria}`).join("\n")}
+
+## 🎯 质量门控
+${response.enhancedStrategy.qualityGates.map(gate => `- ${gate}`).join("\n")}
+
+## 🔄 触发建议
+- **立即行动**: ${response.triggerRecommendations.immediateAction ? "是" : "否"}
+- **主动模式**: ${response.triggerRecommendations.proactiveMode ? "启用" : "禁用"}
+- **时间阈值**: ${response.triggerRecommendations.timeThreshold}分钟
+- **下一步**: ${response.triggerRecommendations.nextSteps}
+
+---
+**重要提醒**: 此工具检测到需要增强搜索验证的模式。请严格按照上述策略执行，确保信息的准确性和时效性。`,
+      },
+    ],
+  };
+}
