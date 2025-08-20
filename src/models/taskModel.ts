@@ -116,9 +116,16 @@ const execPromise = promisify(exec);
 // 確保數據目錄存在
 // Ensure data directory exists
 async function ensureDataDir(projectOverride?: string) {
-  // 获取当前项目上下文
-  // Get current project context
-  const currentProject = projectOverride || ProjectSession.getCurrentProject();
+  // 在多Agent并发安全模式下，要求明确的项目参数
+  // In multi-agent concurrent safety mode, require explicit project parameter
+  if (!projectOverride) {
+    throw new Error(
+      "Project parameter is required for multi-agent safety. " +
+      "Please specify the project name explicitly to ensure data directory isolation and prevent concurrent conflicts."
+    );
+  }
+  
+  const currentProject = projectOverride;
 
   const DATA_DIR = await getDataDir(false, currentProject);
   const TASKS_FILE = await getTasksFilePath(false, currentProject);
@@ -139,9 +146,16 @@ async function ensureDataDir(projectOverride?: string) {
 // 讀取所有任務
 // Read all tasks
 async function readTasks(projectOverride?: string): Promise<Task[]> {
-  // 获取当前项目上下文
-  // Get current project context
-  const currentProject = projectOverride || ProjectSession.getCurrentProject();
+  // 在多Agent并发安全模式下，要求明确的项目参数
+  // In multi-agent concurrent safety mode, require explicit project parameter
+  if (!projectOverride) {
+    throw new Error(
+      "Project parameter is required for multi-agent safety. " +
+      "Please specify the project name explicitly to ensure task data isolation and prevent concurrent conflicts."
+    );
+  }
+  
+  const currentProject = projectOverride;
 
   await ensureDataDir(currentProject);
   const TASKS_FILE = await getTasksFilePath(false, currentProject);
@@ -165,10 +179,19 @@ async function writeTasks(
   commitMessage?: string,
   projectContext?: string
 ): Promise<void> {
+  // 在多Agent并发安全模式下，要求明确的项目参数
+  // In multi-agent concurrent safety mode, require explicit project parameter
+  if (!projectContext) {
+    throw new Error(
+      "Project parameter is required for multi-agent safety. " +
+      "Please specify the project name explicitly to ensure task data isolation and prevent concurrent conflicts."
+    );
+  }
+  
   // 獲取當前項目上下文以便後續恢復
   // Get current project context for later restoration
   const currentProject = ProjectSession.getCurrentProject();
-  const targetProject = projectContext || currentProject;
+  const targetProject = projectContext;
   await ensureDataDir(targetProject);
 
   // 項目上下文安全切換機制
@@ -180,11 +203,10 @@ async function writeTasks(
   }
 
   try {
-    // 在項目上下文切換後獲取正確的目標路徑
-    // Get correct target paths after project context switch
-    const currentProjectForPaths = ProjectSession.getCurrentProject();
-    const TASKS_FILE = await getTasksFilePath(false, currentProjectForPaths);
-    const DATA_DIR = await getDataDir(false, currentProjectForPaths);
+    // 使用明确的项目参数获取正确的目标路径
+    // Get correct target paths using explicit project parameter
+    const TASKS_FILE = await getTasksFilePath(false, targetProject);
+    const DATA_DIR = await getDataDir(false, targetProject);
 
     // 使用文件鎖定確保原子操作
     // Use file locking to ensure atomic operations
@@ -213,30 +235,32 @@ async function writeTasks(
 // 獲取所有任務
 // Get all tasks
 export async function getAllTasks(projectContext?: string): Promise<Task[]> {
-  // 如果指定了項目上下文，臨時切換項目
-  // If project context is specified, temporarily switch project
-  if (projectContext) {
-    const currentProject = ProjectSession.getCurrentProject();
-    try {
-      ProjectSession.setCurrentProject(projectContext);
-      const tasks = await readTasks(projectContext);
-
-      // 驗證項目上下文一致性
-      // Validate project context consistency
-      await validateTasksProjectContext(tasks, projectContext);
-
-      return tasks;
-    } finally {
-      // 恢復原來的項目上下文
-      // Restore original project context
-      ProjectSession.setCurrentProject(currentProject);
-    }
+  // 在多Agent并发安全模式下，要求明确的项目参数
+  // In multi-agent concurrent safety mode, require explicit project parameter
+  if (!projectContext) {
+    throw new Error(
+      "Project parameter is required for multi-agent safety. " +
+      "Please specify the project name explicitly to ensure task data isolation and prevent concurrent conflicts."
+    );
   }
 
-  // 使用当前项目上下文读取任务
-  // Read tasks using current project context
+  // 使用明确的项目上下文读取任务
+  // Read tasks using explicit project context
   const currentProject = ProjectSession.getCurrentProject();
-  return await readTasks(currentProject);
+  try {
+    ProjectSession.setCurrentProject(projectContext);
+    const tasks = await readTasks(projectContext);
+
+    // 驗證項目上下文一致性
+    // Validate project context consistency
+    await validateTasksProjectContext(tasks, projectContext);
+
+    return tasks;
+  } finally {
+    // 恢復原來的項目上下文
+    // Restore original project context
+    ProjectSession.setCurrentProject(currentProject);
+  }
 }
 
 // 根據ID獲取任務
@@ -329,7 +353,8 @@ export async function updateTask(
 // Update task狀態
 export async function updateTaskStatus(
   taskId: string,
-  status: TaskStatus
+  status: TaskStatus,
+  projectContext?: string
 ): Promise<Task | null> {
   const updates: Partial<Task> = { status };
 
@@ -337,16 +362,17 @@ export async function updateTaskStatus(
     updates.completedAt = getLocalDate();
   }
 
-  return await updateTask(taskId, updates);
+  return await updateTask(taskId, updates, projectContext);
 }
 
 // 更新任務
 // Update task摘要
 export async function updateTaskSummary(
   taskId: string,
-  summary: string
+  summary: string,
+  projectContext?: string
 ): Promise<Task | null> {
-  return await updateTask(taskId, { summary });
+  return await updateTask(taskId, { summary }, projectContext);
 }
 
 // 更新任務
@@ -780,9 +806,10 @@ export async function deleteTask(
 // 評估任務複雜度
 // Assess task complexity
 export async function assessTaskComplexity(
-  taskId: string
+  taskId: string,
+  projectContext?: string
 ): Promise<TaskComplexityAssessment | null> {
-  const task = await getTaskById(taskId);
+  const task = await getTaskById(taskId, projectContext);
 
   if (!task) {
     return null;
@@ -959,7 +986,7 @@ export async function clearAllTasks(projectContext?: string): Promise<{
 
     // 確保 memory 目錄存在
     // Ensure memory directory exists
-    const MEMORY_DIR = await getMemoryDir();
+    const MEMORY_DIR = await getMemoryDir(false, projectContext);
     try {
       await fs.access(MEMORY_DIR);
     } catch (error) {

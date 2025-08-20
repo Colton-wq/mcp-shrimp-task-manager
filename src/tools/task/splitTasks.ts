@@ -118,8 +118,10 @@ export const splitTasksSchema = z.object({
     // Task final objectives, from previous analysis applicable to the common part of all tasks
   project: z
     .string()
-    .optional()
-    .describe("Target project name. If project does not exist, it will be created automatically with intelligent naming based on task content"),
+    .min(1, {
+      message: "Project parameter is required for multi-agent safety. Please specify the project name to ensure task data isolation and prevent concurrent conflicts. EXAMPLE: 'my-web-app', 'backend-service', 'mobile-client'. This parameter is mandatory in both MCPHub gateway mode and single IDE mode.",
+    })
+    .describe("REQUIRED - Target project name for task splitting. MANDATORY for multi-agent concurrent safety. If project does not exist, it will be created automatically with intelligent naming based on task content. EXAMPLES: 'my-web-app', 'backend-api', 'mobile-client'. CRITICAL: This parameter prevents concurrent agent conflicts in both MCPHub gateway mode and single IDE mode."),
   projectDescription: z
     .string()
     .optional()
@@ -134,9 +136,9 @@ export async function splitTasks({
   projectDescription,
 }: z.infer<typeof splitTasksSchema>) {
   try {
-    // Handle intelligent project creation/switching if specified
-    // 处理智能项目创建/切换（如果指定）
-    if (project) {
+    // Handle intelligent project creation/switching with mandatory project parameter
+    // 使用强制项目参数处理智能项目创建/切换
+    {
       const { ProjectSession } = await import("../../utils/projectSession.js");
       const fs = await import("fs/promises");
       const path = await import("path");

@@ -10,7 +10,7 @@
   "scripts": {
     "dev": "vite",
     "dev:watch": "vite build --watch",
-    "build": "vite build",
+    "build": "tsc && vite build",
     "preview": "vite preview",
     "start": "node server.js",
     "start:all": "concurrently \"npm start\" \"npm run dev\"",
@@ -19,7 +19,18 @@
     "status": "node cli.js status",
     "test": "vitest",
     "test:ui": "vitest --ui",
-    "test:coverage": "vitest --coverage"
+    "test:coverage": "vitest --coverage",
+    "test:integration": "jest --config=jest.integration.config.js",
+    "test:integration:coverage": "jest --config=jest.integration.config.js --coverage",
+    "test:performance": "jest --config=jest.integration.config.js --testNamePattern=\"Performance Benchmark\"",
+    "test:all": "node scripts/run-integration-tests.js",
+    "lint": "eslint src --ext .ts,.tsx,.js,.jsx",
+    "lint:fix": "eslint src --ext .ts,.tsx,.js,.jsx --fix",
+    "type-check": "tsc --noEmit",
+    "prettier:check": "prettier --check \"src/**/*.{js,jsx,ts,tsx,css,scss,json}\"",
+    "prettier:fix": "prettier --write \"src/**/*.{js,jsx,ts,tsx,css,scss,json}\"",
+    "quality": "npm run lint && npm run type-check && npm run test:coverage",
+    "quality:full": "npm run test:all"
   },
   "keywords": [
     "shrimp",
@@ -74,10 +85,18 @@
     "@testing-library/jest-dom": "^6.1.5",
     "@testing-library/react": "^16.0.1",
     "@testing-library/user-event": "^14.5.1",
+    "@typescript-eslint/eslint-plugin": "^6.21.0",
+    "@typescript-eslint/parser": "^6.21.0",
+    "@vitest/coverage-v8": "^2.1.8",
     "@vitest/ui": "^2.1.8",
     "concurrently": "^9.2.0",
+    "eslint": "^8.57.0",
+    "eslint-plugin-react": "^7.33.2",
+    "eslint-plugin-react-hooks": "^4.6.0",
     "jsdom": "^25.0.1",
     "supertest": "^7.0.0",
-    "vitest": "^2.1.8"
+    "typescript": "^5.3.3",
+    "vitest": "^2.1.8",
+    "zod": "^3.22.4"
   }
 }

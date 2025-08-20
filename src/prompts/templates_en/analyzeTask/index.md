@@ -1,102 +1,181 @@
-## Enhanced Multi-Dimensional Analysis
+## Business-Focused Technical Analysis with MCP Tool Integration
 
 **Task Context:**
 - **Task Summary**: {summary}
 - **Initial Concept**: {initialConcept}
+{iterationPrompt}
 
-After receiving the initial solution, complete the following comprehensive analysis in sequence, and call the `reflect_task` tool at the end:
+Complete the following focused analysis and call `reflect_task` at the end:
 
-### **Phase 1: Requirement Verification & Understanding**
+### 🎯 **Business Validation Check** (MANDATORY)
 
-- **Restate the Problem**: In your own words, what are we actually trying to solve?
-- **Hidden Requirements**: What requirements are implied but not explicitly stated?
-- **Success Criteria**: How will we know when this is truly "done"?
-- **Stakeholder Impact**: Who will be affected by this implementation?
-- **Assumption Validation**: What assumptions are we making? Are they valid?
+**🚨 CRITICAL: Business Goal Confirmation Required**
 
-### **Phase 2: Multi-Dimensional Analysis**
+**Requirement Verification:**
+- Does the proposed solution actually solve the user's REAL business problem?
+- Are we building what the user really needs vs. what they asked for?
+- Is this the simplest approach that works?
+- What's the real success criteria from a business perspective?
+- How will we measure business value and user satisfaction?
 
-**Technical Dimensions:**
-- **Functional Analysis**: Does the solution meet all functional requirements?
-- **Performance Analysis**: What are the performance implications and bottlenecks?
-- **Security Analysis**: What security considerations and vulnerabilities exist?
-- **Scalability Analysis**: How will this solution scale with growth?
-- **Maintainability Analysis**: How easy will this be to maintain and extend?
+**Business Impact Assessment:**
+- What specific business value does this deliver to users?
+- How does this align with project goals and business objectives?
+- Are we over-engineering the solution beyond business needs?
+- What's the business cost of NOT implementing this?
+- Who are the actual users and what do they really need?
 
-**Business Dimensions:**
-- **User Experience Impact**: How does this affect the end user experience?
-- **Operational Impact**: What are the deployment and operational considerations?
-- **Risk Assessment**: What could go wrong and what are the mitigation strategies?
-- **Resource Requirements**: What resources (time, skills, infrastructure) are needed?
+**User Need Validation:**
+- Have we confirmed the real user need behind this request?
+- Is this solving a genuine business problem or just a technical preference?
+- What's the minimum viable solution that delivers business value?
+- How does this improve the user experience or business metrics?
 
-### **Phase 3: Boundary Conditions & Edge Cases**
+### 🔍 **Technical Feasibility Analysis with MCP Tools**
 
-- **Success Scenarios**: Best case, normal case, minimum viable outcomes
-- **Failure Scenarios**: What could fail and how to handle it gracefully?
-- **Resource Constraints**: Time, memory, CPU, network limitations
-- **Integration Points**: How does this interact with other systems?
-- **Data Boundaries**: Input validation, output formatting, data consistency
+**🔧 MANDATORY: Use MCP Tools for Code Analysis**
 
-### **Phase 4: Critical Thinking & Alternative Evaluation**
+**Existing Code Integration** (Use these tools):
+- **`codebase-retrieval`**: Search for similar functionality, architectural patterns, and existing components
+  - Query: "similar functionality to [task description]"
+  - Query: "existing [component type] implementations"
+  - Query: "project architecture patterns for [domain]"
+- **`search_code_desktop-commander`**: Find specific code patterns and implementations
+  - Search for: relevant class names, function signatures, API endpoints
+  - Look for: error handling patterns, validation logic, data models
+- **`Everything MCP`**: Quickly locate configuration files and related resources
+  - Find: config files, environment settings, dependency definitions
+  - Locate: test files, documentation, similar modules
 
-- **Challenge Assumptions**: What if our assumptions are wrong?
-- **Alternative Approaches**: Are there simpler or more robust alternatives?
-- **Trade-off Analysis**: What are we optimizing for and what are we sacrificing?
-- **Future-proofing**: How will this solution evolve with changing requirements?
+**Implementation Complexity Analysis:**
+- What are the core technical challenges?
+- Which parts are straightforward vs. complex?
+- What external dependencies are needed?
+- How can we minimize implementation risk?
 
-### **Phase 5: Technical Implementation Analysis**
+**Performance & Scalability:**
+- Are there obvious performance concerns?
+- How will this scale with usage?
+- What are the resource requirements?
+- Any potential bottlenecks to address?
 
-**5.1 Structural Integrity Check**
+### 🛠️ **Practical Implementation Strategy**
 
-   - Does it cover all requirements and constraints?
-   - Are module boundaries and interface definitions clear?
-   - Is the dependency graph reasonable and maintainable?
-   - Does the design conform to the project's core architectural patterns?
-   - Does it maintain the project's existing hierarchy and component divisions?
+**🔧 MANDATORY: Information Gathering Phase**
 
-**5.2 Duplicate Functionality Detection and Sharing Assessment**
+**If uncertain about ANY technical details, use these tools:**
 
-   - Use precise search strategies:
-     - Use `search_code_desktop-commander`, `read_file_desktop-commander`, and Everything MCP (file search) to search for similar functionality implementations
-     - Analyze the purpose and responsibilities of key components and utility classes
-   - Check if functionalities in the solution overlap with existing code or other modules
-   - If overlapping, determine:
-     - Whether to directly **reuse** existing components (evaluate applicability, extensibility)
-     - Or need to **refactor/abstract** into shared components (consider reuse costs and benefits)
-   - Clearly indicate the reasons for reuse decisions and their scope of impact
+1. **For Architecture Understanding:**
+   - `read_file_desktop-commander`: Read project configuration files (package.json, tsconfig.json, etc.)
+   - `codebase-retrieval`: Understand overall project structure and patterns
+   - `search_code_desktop-commander`: Find architectural documentation or similar implementations
 
-**5.3 Performance and Scalability Assessment**
+2. **For Technology Research (if unfamiliar concepts):**
+   - **Force Search Protocol**: Use `EXA MCP` or `Tavily Remote MCP` for technology research
+   - Search pattern: "[technology] + [specific use case] + best practices"
+   - Validate with multiple sources, check for recent updates (2024-2025)
+   - Look for limitations, alternatives, and real-world experiences
 
-   - Are there potential performance bottlenecks?
-   - How scalable is the design for future requirements?
-   - Have resource usage and system load been considered?
-   - Does the expansion strategy conform to existing project patterns?
-   - What are the worst-case performance scenarios?
+3. **For Integration Analysis:**
+   - `search_code_desktop-commander`: Find existing API integrations, database connections
+   - `Everything MCP`: Locate environment files, configuration templates
+   - `codebase-retrieval`: Understand data flow and service boundaries
 
-**5.4 Consistency and Style Validation**
+**Development Approach:**
+- What's the minimum viable implementation?
+- How can we build this incrementally?
+- What can be tested independently?
+- Where should we start first?
 
-   - Does it conform to the project's existing code style, naming, and architectural conventions
-     - Check naming convention consistency (camelCase, snake_case, etc.)
-     - Confirm method/function parameter and return value styles
-     - Check comment and documentation formats
-   - Does it follow project-specific design patterns and architectural decisions
-   - Are there violations of team best practices
-   - Does the UI/UX design match the current screen style
+**Integration Points:**
+- How does this connect with existing systems?
+- What APIs or interfaces are needed?
+- Are there data migration considerations?
+- What testing strategy is required?
 
-**5.5 Architectural Integration Assessment**
+**Risk Mitigation:**
+- What could go wrong during implementation?
+- How can we detect problems early?
+- What's the rollback strategy?
+- How do we ensure quality?
 
-   - How new features seamlessly integrate with the existing architecture
-   - Evaluate impact on existing modules and services
-   - Confirm backward compatibility is maintained
-   - Check if system boundaries and module encapsulation are protected
+### 📊 **Quality & Maintainability Assessment**
 
-6. **Optimization Suggestions**
-   - Based on the above checks, organize optimized answers
-   - Ensure suggestions are consistent with the existing architecture
-   - Provide specific code organization and integration strategies
-   - Call tool:
-     ```
-     reflect_task({ summary: 'Analysis Summary', analysis: <Analysis Results> })
-     ```
+**🔧 Code Quality Verification (Use MCP Tools):**
+- **`codebase-retrieval`**: Check existing code style, naming conventions, and patterns
+  - Query: "code style examples", "naming conventions", "error handling patterns"
+- **`search_code_desktop-commander`**: Find testing patterns and quality standards
+  - Search for: test files, linting configurations, code review guidelines
 
-**Now call `reflect_task`, strictly forbidden not to call the tool**
+**Code Quality:**
+- Does this follow project coding standards?
+- Is the design maintainable long-term?
+- Are there clear module boundaries?
+- Is error handling adequate?
+
+**Documentation & Testing:**
+- What documentation is needed?
+- How will this be tested?
+- Are there edge cases to consider?
+- What monitoring is required?
+
+### 🚨 **MCP Tool Usage Decision Tree**
+
+**When to use each tool:**
+
+```
+📋 INFORMATION GATHERING:
+├── Need to understand existing code?
+│   └── Use: codebase-retrieval + search_code_desktop-commander
+├── Need to find specific files?
+│   └── Use: Everything MCP
+├── Need to research unfamiliar technology?
+│   └── Use: Force Search Protocol (EXA/Tavily MCP)
+└── Need to read configuration/documentation?
+    └── Use: read_file_desktop-commander
+
+🔍 ANALYSIS PHASE:
+├── Understanding architecture?
+│   └── Use: codebase-retrieval ("architecture patterns", "project structure")
+├── Finding similar implementations?
+│   └── Use: search_code_desktop-commander (specific function/class names)
+├── Checking dependencies?
+│   └── Use: Everything MCP (package.json, requirements.txt, etc.)
+└── Researching best practices?
+    └── Use: Force Search Protocol ("best practices for [technology]")
+
+⚡ IMPLEMENTATION PLANNING:
+├── Need existing code examples?
+│   └── Use: codebase-retrieval + search_code_desktop-commander
+├── Need to understand testing patterns?
+│   └── Use: search_code_desktop-commander ("test", "spec", "mock")
+└── Need to check project conventions?
+    └── Use: read_file_desktop-commander (style guides, contributing.md)
+```
+
+### ⚡ **Final Recommendation**
+
+**Implementation Summary:**
+- Clear, actionable implementation plan
+- Specific next steps and priorities
+- Resource requirements and timeline
+- Success metrics and validation approach
+
+**MCP Tools Used Summary:**
+- List which tools were used and what information was gathered
+- Highlight any gaps where additional research is needed
+- Note any assumptions that should be validated
+
+**Call reflect_task with your analysis:**
+```
+reflect_task({ 
+  summary: "Business-focused analysis summary with MCP tool insights", 
+  analysis: "Practical implementation strategy based on actual codebase analysis and research" 
+})
+```
+
+**🚨 CRITICAL REMINDERS:**
+- NEVER guess or assume technical details - always use MCP tools to gather real information
+- Use Force Search Protocol for any unfamiliar technologies or concepts
+- Combine multiple tools for comprehensive understanding
+- Document which tools provided which insights for transparency

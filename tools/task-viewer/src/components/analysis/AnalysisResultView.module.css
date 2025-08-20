@@ -1,0 +1,469 @@
+/* AnalysisResultView.module.css */
+
+.container {
+  background: var(--bg-color, #ffffff);
+  border: 1px solid var(--border-color, #e0e0e0);
+  border-radius: 8px;
+  padding: 1.5rem;
+  margin: 1rem 0;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 1.5rem;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid var(--border-color, #e0e0e0);
+}
+
+.title {
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: var(--text-primary, #333333);
+  margin: 0;
+}
+
+.metadata {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  font-size: 0.875rem;
+  color: var(--text-secondary, #666666);
+}
+
+.timestamp,
+.processingTime {
+  white-space: nowrap;
+}
+
+.cacheHit {
+  color: var(--success-color, #28a745);
+  font-weight: 500;
+}
+
+.closeButton {
+  background: none;
+  border: none;
+  font-size: 1.5rem;
+  color: var(--text-secondary, #666666);
+  cursor: pointer;
+  padding: 0;
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 4px;
+  transition: background-color 0.2s;
+}
+
+.closeButton:hover {
+  background-color: var(--hover-bg, #f5f5f5);
+  color: var(--text-primary, #333333);
+}
+
+.content {
+  line-height: 1.6;
+}
+
+/* Complexity Analysis Styles */
+.complexityAnalysis {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.scoreSection {
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
+  padding: 1rem;
+  background: var(--bg-secondary, #f8f9fa);
+  border-radius: 8px;
+}
+
+.scoreCircle {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  background: var(--primary-color, #007bff);
+  color: white;
+  font-weight: bold;
+}
+
+.scoreValue {
+  font-size: 1.5rem;
+  line-height: 1;
+}
+
+.scoreLabel {
+  font-size: 0.875rem;
+  opacity: 0.8;
+}
+
+.scoreDetails {
+  flex: 1;
+}
+
+.estimatedHours,
+.confidence {
+  margin: 0.25rem 0;
+  font-size: 0.875rem;
+  color: var(--text-secondary, #666666);
+}
+
+.factorsSection h4,
+.reasoningSection h4,
+.recommendationsSection h4 {
+  margin: 0 0 1rem 0;
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--text-primary, #333333);
+}
+
+.factorsList {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.factor {
+  padding: 1rem;
+  border: 1px solid var(--border-color, #e0e0e0);
+  border-radius: 6px;
+  background: var(--bg-color, #ffffff);
+}
+
+.factorHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.5rem;
+}
+
+.factorName {
+  font-weight: 500;
+  color: var(--text-primary, #333333);
+}
+
+.factorScore {
+  font-weight: 600;
+  color: var(--primary-color, #007bff);
+}
+
+.factorBar {
+  width: 100%;
+  height: 6px;
+  background: var(--bg-secondary, #f8f9fa);
+  border-radius: 3px;
+  margin-bottom: 0.5rem;
+  overflow: hidden;
+}
+
+.factorProgress {
+  height: 100%;
+  background: var(--primary-color, #007bff);
+  border-radius: 3px;
+  transition: width 0.3s ease;
+}
+
+.factorDescription {
+  font-size: 0.875rem;
+  color: var(--text-secondary, #666666);
+  margin: 0;
+}
+
+.reasoning {
+  padding: 1rem;
+  background: var(--bg-secondary, #f8f9fa);
+  border-radius: 6px;
+  margin: 0;
+  font-size: 0.875rem;
+  line-height: 1.6;
+}
+
+.recommendationsList {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.recommendation {
+  padding: 0.75rem;
+  margin-bottom: 0.5rem;
+  background: var(--bg-secondary, #f8f9fa);
+  border-left: 4px solid var(--primary-color, #007bff);
+  border-radius: 0 4px 4px 0;
+  font-size: 0.875rem;
+}
+
+/* Boundary Analysis Styles */
+.boundaryAnalysis {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.boundariesGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 1rem;
+}
+
+.boundarySection h4 {
+  margin: 0 0 0.75rem 0;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--text-primary, #333333);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.boundaryList {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.boundaryList li {
+  padding: 0.5rem;
+  margin-bottom: 0.25rem;
+  background: var(--bg-secondary, #f8f9fa);
+  border-radius: 4px;
+  font-size: 0.875rem;
+}
+
+.deliverableSection {
+  padding: 1rem;
+  background: var(--success-bg, #d4edda);
+  border: 1px solid var(--success-border, #c3e6cb);
+  border-radius: 6px;
+}
+
+.deliverable {
+  margin: 0;
+  font-weight: 500;
+  color: var(--success-text, #155724);
+}
+
+.splitSuggestionsSection h4 {
+  margin: 0 0 1rem 0;
+  font-size: 1rem;
+  font-weight: 600;
+}
+
+.suggestionsList {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.suggestion {
+  padding: 1rem;
+  border: 1px solid var(--border-color, #e0e0e0);
+  border-radius: 6px;
+  background: var(--bg-color, #ffffff);
+}
+
+.suggestionHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.5rem;
+}
+
+.suggestionName {
+  font-weight: 500;
+  color: var(--text-primary, #333333);
+}
+
+.priority {
+  padding: 0.25rem 0.5rem;
+  border-radius: 12px;
+  font-size: 0.75rem;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.priority.high {
+  background: var(--danger-bg, #f8d7da);
+  color: var(--danger-text, #721c24);
+}
+
+.priority.medium {
+  background: var(--warning-bg, #fff3cd);
+  color: var(--warning-text, #856404);
+}
+
+.priority.low {
+  background: var(--info-bg, #d1ecf1);
+  color: var(--info-text, #0c5460);
+}
+
+.suggestionDescription {
+  margin: 0;
+  font-size: 0.875rem;
+  color: var(--text-secondary, #666666);
+}
+
+/* Risk Analysis Styles */
+.riskAnalysis {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.riskOverview {
+  display: flex;
+  justify-content: center;
+  padding: 1rem;
+  background: var(--bg-secondary, #f8f9fa);
+  border-radius: 8px;
+}
+
+.riskScore {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.riskLevel {
+  margin: 0;
+  font-size: 0.875rem;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.riskFactorsSection h4 {
+  margin: 0 0 1rem 0;
+  font-size: 1rem;
+  font-weight: 600;
+}
+
+.riskFactorsList {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.riskFactor {
+  padding: 1rem;
+  border: 1px solid var(--border-color, #e0e0e0);
+  border-radius: 6px;
+  background: var(--bg-color, #ffffff);
+}
+
+.riskFactorHeader {
+  display: flex;
+  gap: 1rem;
+  margin-bottom: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.riskType {
+  padding: 0.25rem 0.5rem;
+  background: var(--primary-color, #007bff);
+  color: white;
+  border-radius: 4px;
+  font-size: 0.75rem;
+  font-weight: 500;
+  text-transform: uppercase;
+}
+
+.riskImpact,
+.riskProbability {
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--text-secondary, #666666);
+}
+
+.riskDescription {
+  margin: 0 0 0.75rem 0;
+  font-size: 0.875rem;
+  line-height: 1.5;
+}
+
+.mitigation {
+  padding: 0.75rem;
+  background: var(--info-bg, #d1ecf1);
+  border-radius: 4px;
+  font-size: 0.875rem;
+}
+
+.criticalRisksSection h4,
+.mitigationPlanSection h4 {
+  margin: 0 0 1rem 0;
+  font-size: 1rem;
+  font-weight: 600;
+}
+
+.criticalRisksList {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.criticalRisk {
+  padding: 0.75rem;
+  margin-bottom: 0.5rem;
+  background: var(--danger-bg, #f8d7da);
+  border-left: 4px solid var(--danger-color, #dc3545);
+  border-radius: 0 4px 4px 0;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--danger-text, #721c24);
+}
+
+.mitigationPlanList {
+  padding-left: 1.5rem;
+  margin: 0;
+}
+
+.mitigationStep {
+  margin-bottom: 0.5rem;
+  font-size: 0.875rem;
+  line-height: 1.5;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .container {
+    padding: 1rem;
+    margin: 0.5rem 0;
+  }
+
+  .header {
+    flex-direction: column;
+    gap: 1rem;
+    align-items: flex-start;
+  }
+
+  .metadata {
+    flex-direction: row;
+    gap: 1rem;
+  }
+
+  .scoreSection {
+    flex-direction: column;
+    text-align: center;
+    gap: 1rem;
+  }
+
+  .boundariesGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .riskFactorHeader {
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+}

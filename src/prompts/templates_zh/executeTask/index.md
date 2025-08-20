@@ -22,6 +22,8 @@
 
 {complexityTemplate}
 
+{intelligentAnalysisTemplate}
+
 ## 執行步驟
 
 1. **分析需求** - 理解任務需求和約束條件

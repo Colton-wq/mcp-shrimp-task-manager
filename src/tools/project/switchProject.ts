@@ -25,7 +25,9 @@ export async function switchProject({
   // 檢查衝突
   if (checkConflicts) {
     try {
-      const dataDir = await getDataDir(true);
+      // 使用临时项目名获取基础路径来检查项目冲突
+      // Use temporary project name to get base path for checking project conflicts
+      const dataDir = await getDataDir(true, "temp");
       const parentDir = path.dirname(dataDir);
       const entries = await fs.readdir(parentDir, { withFileTypes: true });
       const existingProjects = entries
@@ -63,7 +65,7 @@ export async function switchProject({
   // 如果需要自動創建
   if (autoCreate) {
     try {
-      const dataDir = await getDataDir(true);
+      const dataDir = await getDataDir(true, cleanProject);
       await fs.mkdir(dataDir, { recursive: true });
 
       // 創建基本的任務文件

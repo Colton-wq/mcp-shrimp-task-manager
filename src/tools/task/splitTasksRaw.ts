@@ -28,7 +28,12 @@ export const splitTasksRawSchema = z.object({
     .string()
     .optional()
     .describe("任務最終目標，來自之前分析適用於所有任務的通用部分"),
-  project: z.string().optional().describe("Target project name. If project does not exist, it will be created automatically with intelligent naming based on task content"),
+  project: z
+    .string()
+    .min(1, {
+      message: "Project parameter is required for multi-agent safety. Please specify the project name to ensure task data isolation and prevent concurrent conflicts. EXAMPLE: 'my-web-app', 'backend-service', 'mobile-client'. This parameter is mandatory in both MCPHub gateway mode and single IDE mode.",
+    })
+    .describe("REQUIRED - Target project name for task splitting. MANDATORY for multi-agent concurrent safety. If project does not exist, it will be created automatically with intelligent naming based on task content. EXAMPLES: 'my-web-app', 'backend-api', 'mobile-client'. CRITICAL: This parameter prevents concurrent agent conflicts in both MCPHub gateway mode and single IDE mode."),
   projectDescription: z.string().optional().describe("Project description for intelligent categorization and naming when creating new projects"),
     // Task final objectives, from previous analysis applicable to the common part of all tasks
 });
@@ -139,9 +144,9 @@ export async function splitTasksRaw({
   project,
   projectDescription,
 }: z.infer<typeof splitTasksRawSchema>) {
-  // Handle intelligent project creation/switching if specified
-  // 处理智能项目创建/切换（如果指定）
-  if (project) {
+  // Handle intelligent project creation/switching with mandatory project parameter
+  // 使用强制项目参数处理智能项目创建/切换
+  {
     const { ProjectSession } = await import("../../utils/projectSession.js");
     const fs = await import("fs/promises");
     const path = await import("path");
@@ -152,7 +157,7 @@ export async function splitTasksRaw({
     // Check if project exists
     try {
       const { getDataDir } = await import("../../utils/paths.js");
-      const dataDir = await getDataDir(true);
+      const dataDir = await getDataDir(true, project);
       const parentDir = path.dirname(dataDir);
       const projectPath = path.join(parentDir, cleanProject);
 
@@ -291,7 +296,7 @@ export async function splitTasksRaw({
     // 處理 clearAllTasks 模式
     // Handle clearAllTasks mode
     if (updateMode === "clearAllTasks") {
-      const clearResult = await modelClearAllTasks();
+      const clearResult = await modelClearAllTasks(project);
 
       if (clearResult.success) {
         message = clearResult.message;

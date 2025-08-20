@@ -140,6 +140,10 @@ export async function getPlanTaskPrompt(
     rulesPath: "shrimp-rules.md",
     memoryDir: params.memoryDir,
     thoughtTemplate: thoughtTemplate,
+    // 启用上下文感知分析
+    // Enable context-aware analysis
+    enableContextAnalysis: true,
+    existingTasks: [...(params.completedTasks || []), ...(params.pendingTasks || [])]
   });
 
   // 載入可能的自定義 prompt

@@ -10,7 +10,12 @@ import { getUpdateTaskContentPrompt } from "../../prompts/index.js";
 // 更新任務內容工具
 // Update task content tool
 export const updateTaskContentSchema = z.object({
-  project: z.string().optional().describe("指定要更新的項目（可選），省略則使用目前會話項目"),
+  project: z
+    .string()
+    .min(1, {
+      message: "Project parameter is required for multi-agent safety. Please specify the project name to ensure task data isolation and prevent concurrent conflicts. EXAMPLE: 'my-web-app', 'backend-service', 'mobile-client'. This parameter is mandatory in both MCPHub gateway mode and single IDE mode.",
+    })
+    .describe("REQUIRED - Target project name for task update. MANDATORY for multi-agent concurrent safety. Ensures task is updated in correct project context and prevents data conflicts between different agents. EXAMPLES: 'my-web-app', 'backend-api', 'mobile-client'. CRITICAL: This parameter prevents concurrent agent conflicts in both MCPHub gateway mode and single IDE mode."),
   taskId: z
     .string()
     .regex(UUID_V4_REGEX, {

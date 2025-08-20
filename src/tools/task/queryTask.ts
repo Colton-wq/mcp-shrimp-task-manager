@@ -5,7 +5,12 @@ import { getQueryTaskPrompt } from "../../prompts/index.js";
 // 查詢任務工具
 // Query task tool
 export const queryTaskSchema = z.object({
-  project: z.string().optional().describe("指定查詢的項目（可選），省略則使用目前會話項目"),
+  project: z
+    .string()
+    .min(1, {
+      message: "Project parameter is required for multi-agent safety. Please specify the project name to ensure task data isolation and prevent concurrent conflicts. EXAMPLE: 'my-web-app', 'backend-service', 'mobile-client'. This parameter is mandatory in both MCPHub gateway mode and single IDE mode.",
+    })
+    .describe("REQUIRED - Target project name for task query. MANDATORY for multi-agent concurrent safety. Ensures tasks are queried from correct project context and prevents data conflicts between different agents. EXAMPLES: 'my-web-app', 'backend-api', 'mobile-client'. CRITICAL: This parameter prevents concurrent agent conflicts in both MCPHub gateway mode and single IDE mode."),
   query: z
     .string()
     .min(1, {
@@ -51,10 +56,9 @@ export async function queryTask({
     const { ProjectSession } = await import("../../utils/projectSession.js");
     
     return await ProjectSession.withProjectContext(project, async () => {
-      // 使用系統指令搜尋函數
-      // Use system command search function
-      const currentProject = ProjectSession.getCurrentProject();
-      const results = await searchTasksWithCommand(query, isId, page, pageSize, currentProject);
+      // 使用强制项目参数确保并发安全的搜索
+      // Use mandatory project parameter for concurrent-safe search
+      const results = await searchTasksWithCommand(query, isId, page, pageSize, project);
 
     // 使用prompt生成器獲取最終prompt
     // Use prompt generator to get the final prompt

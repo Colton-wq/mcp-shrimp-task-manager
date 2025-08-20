@@ -52,11 +52,10 @@ export async function getDataDir(forceRefresh = false, projectOverride?: string)
   const now = Date.now();
   const server = getGlobalServer();
 
-  // 檢查緩存有效性（如果不強制刷新）
-  // Check cache validity (if not forcing refresh)
-  if (!forceRefresh && cachedDataDir && (now - lastRootsCall) < CACHE_DURATION) {
-    return cachedDataDir;
-  }
+  // 在多Agent并发安全模式下，禁用全局缓存以确保项目隔离
+  // In multi-agent concurrent safety mode, disable global cache to ensure project isolation
+  // 每个项目都应该有独立的路径，不能共享缓存
+  // Each project should have independent paths, cannot share cache
 
   // 嘗試使用項目會話管理獲取項目上下文
   // Try to get project context using project session management
@@ -64,9 +63,7 @@ export async function getDataDir(forceRefresh = false, projectOverride?: string)
     try {
       const projectContext = await getActiveProjectContext(server, projectOverride);
       if (projectContext) {
-        cachedDataDir = projectContext.dataDir;
-        lastRootsCall = now;
-        return cachedDataDir;
+        return projectContext.dataDir;
       }
     } catch (error) {
       // 如果項目上下文獲取失敗，回退到原有邏輯
@@ -74,12 +71,21 @@ export async function getDataDir(forceRefresh = false, projectOverride?: string)
     }
   }
 
-  // 如果项目上下文获取失败，使用简化的项目隔离逻辑
-  // If project context acquisition failed, use simplified project isolation logic
-  const currentProject = projectOverride || ProjectSession.getCurrentProject();
-  if (currentProject && currentProject !== 'main') {
-    // 使用项目特定的数据目录
-    // Use project-specific data directory
+  // 在多Agent并发安全模式下，要求明确的项目参数
+  // In multi-agent concurrent safety mode, require explicit project parameter
+  if (!projectOverride) {
+    throw new Error(
+      "Project parameter is required for multi-agent safety. " +
+      "Please specify the project name explicitly to ensure path isolation and prevent concurrent conflicts. " +
+      "This parameter is mandatory in both MCPHub gateway mode and single IDE mode. " +
+      "EXAMPLE: getDataDir(false, 'my-web-app')"
+    );
+  }
+  
+  const currentProject = projectOverride;
+  if (currentProject) {
+    // 在多Agent并发安全模式下，所有项目都需要隔离，包括'main'项目
+    // In multi-agent concurrent safety mode, all projects need isolation, including 'main' project
     const sanitizedProjectName = currentProject
       .replace(/[<>:"/\\|?*]/g, '_')
       .replace(/\s+/g, '_')
@@ -91,9 +97,7 @@ export async function getDataDir(forceRefresh = false, projectOverride?: string)
     // Project isolation logic: apply regardless of whether DATA_DIR is set
     if (process.env.DATA_DIR && path.isAbsolute(process.env.DATA_DIR)) {
       const projectDataDir = path.join(process.env.DATA_DIR, sanitizedProjectName);
-      cachedDataDir = projectDataDir;
-      lastRootsCall = now;
-      return cachedDataDir;
+      return projectDataDir;
     } else {
       // 如果没有设置 DATA_DIR 或不是绝对路径，使用项目根目录下的项目特定目录
       // If DATA_DIR is not set or not absolute, use project-specific directory under project root
@@ -123,9 +127,7 @@ export async function getDataDir(forceRefresh = false, projectOverride?: string)
       const dataDir = process.env.DATA_DIR || "shrimpdata";
       const projectDataDir = path.join(baseDir, dataDir, sanitizedProjectName);
 
-      cachedDataDir = projectDataDir;
-      lastRootsCall = now;
-      return cachedDataDir;
+      return projectDataDir;
     }
   }
 
@@ -167,16 +169,10 @@ export async function getDataDir(forceRefresh = false, projectOverride?: string)
       if (rootPath) {
         const lastFolderName = path.basename(rootPath);
         const finalPath = path.join(process.env.DATA_DIR, lastFolderName);
-        // 緩存結果
-        // Cache the result
-        cachedDataDir = finalPath;
-        lastRootsCall = now;
         return finalPath;
       } else {
         // 如果沒有 rootPath，直接返回 DATA_DIR
         // If there's no rootPath, return DATA_DIR directly
-        cachedDataDir = process.env.DATA_DIR;
-        lastRootsCall = now;
         return process.env.DATA_DIR;
       }
     } else {
@@ -193,8 +189,6 @@ export async function getDataDir(forceRefresh = false, projectOverride?: string)
         // 如果沒有 rootPath，使用 PROJECT_ROOT
         // If there's no rootPath, use PROJECT_ROOT
         const finalPath = path.join(PROJECT_ROOT, process.env.DATA_DIR);
-        cachedDataDir = finalPath;
-        lastRootsCall = now;
         return finalPath;
       }
     }
@@ -224,10 +218,6 @@ export async function getDataDir(forceRefresh = false, projectOverride?: string)
   }
 
   // 緩存結果
-  // Cache the result
-  cachedDataDir = finalPath;
-  lastRootsCall = now;
-
   return finalPath;
 }
 
@@ -282,8 +272,10 @@ export function getProjectRoot(): string {
  * 清除路徑緩存
  * Clear path cache
  *
- * 當需要強制重新計算路徑時調用此函數
- * Call this function when you need to force recalculation of paths
+ * 注意：在多Agent并发安全模式下，路径缓存已被禁用以确保项目隔离
+ * Note: In multi-agent concurrent safety mode, path caching is disabled to ensure project isolation
+ * 此函数主要用于清除ProjectSession缓存
+ * This function is mainly used to clear ProjectSession cache
  */
 export function clearPathCache(): void {
   cachedDataDir = null;

@@ -49,6 +49,13 @@ import {
   researchModeSchema,
   forceSearchProtocol,
   forceSearchProtocolSchema,
+} from "./tools/index.js";
+
+// 导入工作流工具
+// Import workflow tools
+import {
+  codeReviewAndCleanupTool,
+  codeReviewAndCleanupSchema,
   listProjects,
   listProjectsSchema,
   switchProject,
@@ -223,6 +230,13 @@ async function main() {
               "toolsDescription/forceSearchProtocol.md"
             ),
             inputSchema: zodToJsonSchema(forceSearchProtocolSchema),
+          },
+          {
+            name: "code_review_and_cleanup_tool",
+            description: await loadPromptFromTemplate(
+              "toolsDescription/codeReviewAndCleanupTool.md"
+            ),
+            inputSchema: zodToJsonSchema(codeReviewAndCleanupSchema),
           },
 
         ],
@@ -414,6 +428,17 @@ async function main() {
                 );
               }
               return await forceSearchProtocol(parsedArgs.data);
+
+            case "code_review_and_cleanup_tool":
+              parsedArgs = await codeReviewAndCleanupSchema.safeParseAsync(
+                request.params.arguments
+              );
+              if (!parsedArgs.success) {
+                throw new Error(
+                  `Invalid arguments for tool ${request.params.name}: ${parsedArgs.error.message}`
+                );
+              }
+              return await codeReviewAndCleanupTool(parsedArgs.data);
 
             default:
               throw new Error(`Tool ${request.params.name} does not exist`);

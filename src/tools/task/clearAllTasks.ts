@@ -15,7 +15,12 @@ export const clearAllTasksSchema = z.object({
         "必須明確確認清除操作，請將 confirm 參數設置為 true 以確認此危險操作",
     })
     .describe("確認刪除所有未完成的任務（此操作不可逆）"),
-  project: z.string().optional().describe("指定要清空的項目（可選），省略則使用目前會話項目"),
+  project: z
+    .string()
+    .min(1, {
+      message: "Project parameter is required for multi-agent safety. Please specify the project name to ensure task data isolation and prevent concurrent conflicts. EXAMPLE: 'my-web-app', 'backend-service', 'mobile-client'. This parameter is mandatory in both MCPHub gateway mode and single IDE mode.",
+    })
+    .describe("REQUIRED - Target project name for clearing tasks. MANDATORY for multi-agent concurrent safety. Ensures tasks are cleared from correct project context and prevents data conflicts between different agents. EXAMPLES: 'my-web-app', 'backend-api', 'mobile-client'. CRITICAL: This parameter prevents concurrent agent conflicts in both MCPHub gateway mode and single IDE mode."),
 });
 
 export async function clearAllTasks({

@@ -535,6 +535,12 @@ export async function getActiveProjectContext(
     return await ProjectSession.getProjectContext(projectOverride, server);
   }
 
-  const currentProject = ProjectSession.getCurrentProject();
-  return await ProjectSession.getProjectContext(currentProject, server);
+  // 在多Agent并发安全模式下，不再允许回退到全局状态
+  // In multi-agent concurrent safety mode, no longer allow fallback to global state
+  throw new Error(
+    "Project parameter is required for multi-agent safety. " +
+    "Please specify the project name explicitly to ensure task data isolation and prevent concurrent conflicts. " +
+    "This parameter is mandatory in both MCPHub gateway mode and single IDE mode. " +
+    "EXAMPLE: { project: 'my-web-app' }"
+  );
 }

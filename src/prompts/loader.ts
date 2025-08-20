@@ -61,22 +61,39 @@ export function loadPrompt(basePrompt: string, promptKey: string): string {
 }
 
 /**
- * 生成包含動態參數的 prompt
- * Generate prompt with dynamic parameters
+ * 增强的上下文感知参数
+ * Enhanced context-aware parameters
+ */
+export interface ContextAwareParams extends Record<string, any> {
+  description?: string;
+  requirements?: string;
+  existingTasks?: any[];
+  enableContextAnalysis?: boolean;
+}
+
+/**
+ * 生成包含動態參數的 prompt (增强版 - 支持上下文感知)
+ * Generate prompt with dynamic parameters (Enhanced - Context-aware)
  * @param promptTemplate prompt 模板
  * @param promptTemplate prompt template
- * @param params 動態參數
- * @param params dynamic parameters
+ * @param params 動態參數 (支持上下文感知)
+ * @param params dynamic parameters (context-aware support)
  * @returns 填充參數後的 prompt
  * @returns Prompt with parameters filled in
  */
 export function generatePrompt(
   promptTemplate: string,
-  params: Record<string, any> = {}
+  params: ContextAwareParams = {}
 ): string {
   // 使用簡單的模板替換方法，將 {paramName} 替換為對應的參數值
   // Use simple template replacement method to replace {paramName} with corresponding parameter values
   let result = promptTemplate;
+
+  // 如果启用上下文分析，进行智能内容调整
+  // If context analysis is enabled, perform intelligent content adjustment
+  if (params.enableContextAnalysis && (params.description || params.requirements)) {
+    result = enhancePromptWithContext(result, params);
+  }
 
   Object.entries(params).forEach(([key, value]) => {
     // 如果值為 undefined 或 null，使用空字串替換
@@ -94,6 +111,81 @@ export function generatePrompt(
 }
 
 /**
+ * 使用上下文分析增强提示词
+ * Enhance prompt with context analysis
+ */
+function enhancePromptWithContext(
+  promptTemplate: string,
+  params: ContextAwareParams
+): string {
+  // 动态导入上下文分析器 (避免循环依赖)
+  // Dynamic import context analyzer (avoid circular dependencies)
+  try {
+    // 这里我们先实现一个简化版本，避免循环依赖
+    // Here we implement a simplified version first to avoid circular dependencies
+    const contextEnhancement = generateContextEnhancement(params);
+    
+    // 在模板开头添加上下文感知的业务确认部分
+    // Add context-aware business confirmation section at the beginning of template
+    if (contextEnhancement) {
+      const enhancedTemplate = `${contextEnhancement}\n\n${promptTemplate}`;
+      return enhancedTemplate;
+    }
+  } catch (error) {
+    // 如果上下文分析失败，继续使用原始模板
+    // If context analysis fails, continue with original template
+    console.warn('Context analysis failed, using original template:', error);
+  }
+
+  return promptTemplate;
+}
+
+/**
+ * 生成上下文增强内容
+ * Generate context enhancement content
+ */
+function generateContextEnhancement(params: ContextAwareParams): string {
+  if (!params.description) return '';
+
+  const text = `${params.description} ${params.requirements || ''}`.toLowerCase();
+  
+  // 简化的业务意图检测
+  // Simplified business intent detection
+  let businessGoalConfirmation = '';
+  
+  if (text.includes('problem') || text.includes('issue') || text.includes('fix')) {
+    businessGoalConfirmation = '🎯 **业务目标确认**: 在开始技术分析前，请确认这个问题对用户的实际影响是什么？最简单的解决方案是什么？';
+  } else if (text.includes('implement') || text.includes('create') || text.includes('build')) {
+    businessGoalConfirmation = '🎯 **业务目标确认**: 在开始功能实现前，请确认这个功能要解决用户的什么具体需求？是否有更简单的替代方案？';
+  } else if (text.includes('optimize') || text.includes('performance')) {
+    businessGoalConfirmation = '🎯 **业务目标确认**: 在开始性能优化前，请确认当前性能问题对业务的具体影响是什么？优化的优先级如何？';
+  } else {
+    businessGoalConfirmation = '🎯 **业务目标确认**: 在开始技术分析前，请确认用户真正想要达到什么业务目标？最简单可行的方案是什么？';
+  }
+
+  // 工具使用建议
+  // Tool usage recommendations
+  let toolRecommendations = '';
+  if (text.includes('code') || text.includes('implement')) {
+    toolRecommendations = '\n🔧 **推荐工具**: 使用 `codebase-retrieval` 分析现有代码结构，`search_code_desktop-commander` 查找相关实现';
+  } else if (text.includes('file') || text.includes('document')) {
+    toolRecommendations = '\n🔧 **推荐工具**: 使用 `Everything MCP` 搜索相关文件，`read_file_desktop-commander` 查看具体内容';
+  } else {
+    toolRecommendations = '\n🔧 **推荐工具**: 根据需要使用 `codebase-retrieval`、`Everything MCP`、`Desktop Commander` 等工具收集信息';
+  }
+
+  // 简化提醒
+  // Simplification reminder
+  const simplificationReminder = '\n💡 **简化原则**: 优先考虑最简单可行的解决方案，避免过度设计。如果问题复杂，考虑分步骤实现。';
+
+  return `## 🚀 智能任务分析
+
+${businessGoalConfirmation}${toolRecommendations}${simplificationReminder}
+
+---`;
+}
+
+/**
  * 從模板載入 prompt
  * Load prompt from template
  * @param templatePath 相對於模板集根目錄的模板路徑 (e.g., 'chat/basic.md')
@@ -107,7 +199,9 @@ export async function loadPromptFromTemplate(
   templatePath: string
 ): Promise<string> {
   const templateSetName = process.env.TEMPLATES_USE || "en";
-  const dataDir = await getDataDir();
+  // 模板加载器使用"main"项目作为默认项目确保并发安全
+  // Template loader uses "main" project as default for concurrent safety
+  const dataDir = await getDataDir(false, "main");
   const builtInTemplatesBaseDir = __dirname;
 
   let finalPath = "";

@@ -18,7 +18,7 @@ export { getAnalyzeTaskPrompt } from "./generators/analyzeTask.js";
 export { getReflectTaskPrompt } from "./generators/reflectTask.js";
 export { getSplitTasksPrompt } from "./generators/splitTasks.js";
 export { getExecuteTaskPrompt } from "./generators/executeTask.js";
-export { getVerifyTaskPrompt } from "./generators/verifyTask.js";
+export { getVerifyTaskPrompt, analyzeTaskDeviation } from "./generators/verifyTask.js";
 export { getCompleteTaskPrompt } from "./generators/completeTask.js";
 export { getListTasksPrompt } from "./generators/listTasks.js";
 export { getQueryTaskPrompt } from "./generators/queryTask.js";

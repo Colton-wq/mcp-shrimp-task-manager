@@ -24,19 +24,26 @@ export const planTaskSchema = z.object({
     .optional()
     .default(false)
     .describe("OPTIONAL - Whether to reference existing tasks for continuity planning. SET TO TRUE when: extending existing features, maintaining consistency with previous work, building upon completed tasks. SET TO FALSE for: new independent projects, fresh starts, unrelated features. DEFAULT: false"),
+  project: z
+    .string()
+    .min(1, {
+      message: "Project parameter is required for multi-agent safety. Please specify the project name to ensure task data isolation and prevent concurrent conflicts. EXAMPLE: 'my-web-app', 'backend-service', 'mobile-client'. This parameter is mandatory in both MCPHub gateway mode and single IDE mode.",
+    })
+    .describe("REQUIRED - Target project name for task planning. MANDATORY for multi-agent concurrent safety. Ensures task data is written to correct project context and prevents data conflicts between different agents. EXAMPLES: 'my-web-app', 'backend-api', 'mobile-client'. CRITICAL: This parameter prevents concurrent agent conflicts in both MCPHub gateway mode and single IDE mode."),
 });
 
 export async function planTask({
   description,
   requirements,
   existingTasksReference = false,
+  project,
 }: z.infer<typeof planTaskSchema>) {
-  // 獲取基礎目錄路徑
-  // Get base directory path
+  // 獲取基礎目錄路徑，使用强制的项目参数确保并发安全
+  // Get base directory path, use mandatory project parameter for concurrent safety
   const __filename = fileURLToPath(import.meta.url);
   const __dirname = path.dirname(__filename);
   const PROJECT_ROOT = path.resolve(__dirname, "../../..");
-  const MEMORY_DIR = await getMemoryDir();
+  const MEMORY_DIR = await getMemoryDir(false, project);
 
   // 準備所需參數
   // Prepare required parameters
@@ -47,7 +54,7 @@ export async function planTask({
   // When existingTasksReference is true, load all tasks from database as reference
   if (existingTasksReference) {
     try {
-      const allTasks = await getAllTasks();
+      const allTasks = await getAllTasks(project);
 
       // 將任務分為已完成和未完成兩類
       // Divide tasks into completed and incomplete categories

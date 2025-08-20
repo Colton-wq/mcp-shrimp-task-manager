@@ -1,0 +1,179 @@
+/* VirtualScrollList.module.css */
+
+.container {
+  overflow-y: auto;
+  overflow-x: hidden;
+  position: relative;
+  width: 100%;
+  scrollbar-width: thin;
+  scrollbar-color: var(--scrollbar-thumb, #cbd5e0) var(--scrollbar-track, #f7fafc);
+}
+
+.container::-webkit-scrollbar {
+  width: 8px;
+}
+
+.container::-webkit-scrollbar-track {
+  background: var(--scrollbar-track, #f7fafc);
+  border-radius: 4px;
+}
+
+.container::-webkit-scrollbar-thumb {
+  background: var(--scrollbar-thumb, #cbd5e0);
+  border-radius: 4px;
+  transition: background-color 0.2s ease;
+}
+
+.container::-webkit-scrollbar-thumb:hover {
+  background: var(--scrollbar-thumb-hover, #a0aec0);
+}
+
+.scrolling {
+  scroll-behavior: auto;
+}
+
+.container:not(.scrolling) {
+  scroll-behavior: smooth;
+}
+
+.item {
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.scrollIndicator {
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 4px;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.1);
+  border-radius: 2px;
+  pointer-events: none;
+  opacity: 0;
+  animation: fadeIn 0.2s ease forwards;
+}
+
+.scrollThumb {
+  width: 100%;
+  background: var(--primary-color, #007bff);
+  border-radius: 2px;
+  transition: all 0.2s ease;
+}
+
+/* Dark mode support */
+@media (prefers-color-scheme: dark) {
+  .container {
+    scrollbar-color: var(--scrollbar-thumb-dark, #4a5568) var(--scrollbar-track-dark, #2d3748);
+  }
+
+  .container::-webkit-scrollbar-track {
+    background: var(--scrollbar-track-dark, #2d3748);
+  }
+
+  .container::-webkit-scrollbar-thumb {
+    background: var(--scrollbar-thumb-dark, #4a5568);
+  }
+
+  .container::-webkit-scrollbar-thumb:hover {
+    background: var(--scrollbar-thumb-hover-dark, #718096);
+  }
+
+  .scrollIndicator {
+    background: rgba(255, 255, 255, 0.1);
+  }
+}
+
+/* High contrast mode */
+@media (prefers-contrast: high) {
+  .container::-webkit-scrollbar-thumb {
+    background: #000;
+  }
+
+  .scrollIndicator {
+    background: rgba(0, 0, 0, 0.3);
+  }
+
+  .scrollThumb {
+    background: #000;
+  }
+}
+
+/* Reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  .container {
+    scroll-behavior: auto;
+  }
+
+  .container::-webkit-scrollbar-thumb {
+    transition: none;
+  }
+
+  .scrollThumb {
+    transition: none;
+  }
+
+  .scrollIndicator {
+    animation: none;
+    opacity: 1;
+  }
+}
+
+/* Mobile optimizations */
+@media (max-width: 768px) {
+  .container {
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+  }
+
+  .container::-webkit-scrollbar {
+    display: none;
+  }
+
+  .scrollIndicator {
+    width: 3px;
+  }
+}
+
+/* Touch device optimizations */
+@media (hover: none) and (pointer: coarse) {
+  .container {
+    scrollbar-width: none;
+  }
+
+  .container::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+/* Animations */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 0.7;
+  }
+}
+
+/* Focus styles for accessibility */
+.container:focus {
+  outline: 2px solid var(--primary-color, #007bff);
+  outline-offset: -2px;
+}
+
+.container:focus:not(:focus-visible) {
+  outline: none;
+}
+
+/* Print styles */
+@media print {
+  .container {
+    overflow: visible;
+    height: auto !important;
+  }
+
+  .scrollIndicator {
+    display: none;
+  }
+}

@@ -7,7 +7,12 @@ export const listTasksSchema = z.object({
   status: z
     .enum(["all", "pending", "in_progress", "completed"])
     .describe("要列出的任務狀態，可選擇 'all' 列出所有任務，或指定具體狀態"),
-  project: z.string().optional().describe("指定要讀取的項目（可選），省略則使用目前會話項目"),
+  project: z
+    .string()
+    .min(1, {
+      message: "Project parameter is required for multi-agent safety. Please specify the project name to ensure task data isolation and prevent concurrent conflicts. EXAMPLE: 'my-web-app', 'backend-service', 'mobile-client'. This parameter is mandatory in both MCPHub gateway mode and single IDE mode.",
+    })
+    .describe("REQUIRED - Target project name for listing tasks. MANDATORY for multi-agent concurrent safety. Ensures tasks are read from correct project context and prevents data conflicts between different agents. EXAMPLES: 'my-web-app', 'backend-api', 'mobile-client'. CRITICAL: This parameter prevents concurrent agent conflicts in both MCPHub gateway mode and single IDE mode."),
 });
 
 // 列出任務工具
@@ -16,15 +21,14 @@ export async function listTasks({ status, project }: z.infer<typeof listTasksSch
   const { ProjectSession } = await import("../../utils/projectSession.js");
 
   return await ProjectSession.withProjectContext(project, async () => {
-    // 确保使用正确的项目上下文，优先使用传入的项目参数，否则使用当前项目
-    // Ensure correct project context, prioritize passed project parameter, otherwise use current project
-    const effectiveProject = project || ProjectSession.getCurrentProject();
-    const tasks = await getAllTasks(effectiveProject);
+    // 使用强制的项目参数确保并发安全，不再依赖全局状态
+    // Use mandatory project parameter for concurrent safety, no longer rely on global state
+    const tasks = await getAllTasks(project);
 
     // 验证项目上下文一致性
     // Validate project context consistency
     const { getProjectContextValidation } = await import("../../models/taskModel.js");
-    const validation = await getProjectContextValidation(effectiveProject);
+    const validation = await getProjectContextValidation(project);
   let filteredTasks = tasks;
   switch (status) {
     case "all":
@@ -98,7 +102,7 @@ export async function listTasks({ status, project }: z.infer<typeof listTasksSch
   }
 
   // 附加項目元數據，幫助AI識別當前內容所屬項目
-  const textWithMeta = ProjectSession.addProjectMetadata(prompt + suggestionsFooter + contextWarning, effectiveProject);
+  const textWithMeta = ProjectSession.addProjectMetadata(prompt + suggestionsFooter + contextWarning, project);
 
   return {
     content: [

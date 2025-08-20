@@ -486,11 +486,11 @@ async function analyzeFilePaths(tasks: Task[], result: ConflictDetectionResult, 
     return;
   }
 
-  // Get current project data directory
-  // 获取当前项目数据目录
+  // Get current project data directory using explicit project parameter
+  // 使用明确的项目参数获取当前项目数据目录
   let currentProjectPath: string;
   try {
-    currentProjectPath = await getDataDir();
+    currentProjectPath = await getDataDir(false, currentProject);
   } catch (error) {
     pathAnalysis.pathConfidenceScore = 0.5;
     return;

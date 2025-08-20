@@ -1979,6 +1979,188 @@ async function startServer() {
                 }
             });
             
+        } else if (url.pathname === '/api/analysis' && req.method === 'POST') {
+            // Handle task analysis requests
+            let body = '';
+            req.on('data', chunk => body += chunk.toString());
+            req.on('end', async () => {
+                try {
+                    const { prompt, template, parameters, task, context } = JSON.parse(body);
+                    console.log('Analysis request:', { template, taskId: task?.id });
+                    
+                    // Load global settings for API configuration
+                    let globalSettings;
+                    try {
+                        globalSettings = await loadGlobalSettings();
+                    } catch (err) {
+                        console.error('Error loading global settings:', err);
+                        globalSettings = {
+                            openAIKey: '',
+                            modelName: 'gpt-4-turbo-preview',
+                            apiUrl: 'https://api.openai.com/v1'
+                        };
+                    }
+
+                    // Get API configuration
+                    const apiKey = process.env.OPENAI_API_KEY || process.env.OPEN_AI_KEY_SHRIMP_TASK_VIEWER || globalSettings.openAIKey;
+                    const modelName = globalSettings.modelName || 'gpt-4-turbo-preview';
+                    const apiUrl = globalSettings.apiUrl || 'https://api.openai.com/v1';
+
+                    if (!apiKey) {
+                        res.writeHead(400, { 'Content-Type': 'application/json' });
+                        res.end(JSON.stringify({
+                            success: false,
+                            error: {
+                                code: 'API_KEY_MISSING',
+                                message: 'OpenAI API key not configured'
+                            },
+                            metadata: {
+                                timestamp: new Date().toISOString(),
+                                requestId: Date.now().toString(),
+                                processingTime: 0
+                            }
+                        }));
+                        return;
+                    }
+
+                    const startTime = Date.now();
+
+                    // Call OpenAI API for analysis
+                    const openAIResponse = await fetch(`${apiUrl}/chat/completions`, {
+                        method: 'POST',
+                        headers: {
+                            'Authorization': `Bearer ${apiKey}`,
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({
+                            model: modelName,
+                            messages: [
+                                {
+                                    role: 'system',
+                                    content: prompt + '\n\nPlease respond with a valid JSON object that matches the expected schema for ' + template + ' analysis.'
+                                }
+                            ],
+                            temperature: parameters?.temperature || 0.3,
+                            max_tokens: parameters?.maxTokens || 1000,
+                            top_p: parameters?.topP || 0.9
+                        })
+                    });
+
+                    if (!openAIResponse.ok) {
+                        throw new Error(`OpenAI API error: ${openAIResponse.statusText}`);
+                    }
+
+                    const openAIData = await openAIResponse.json();
+                    const aiResponse = openAIData.choices[0]?.message?.content;
+
+                    if (!aiResponse) {
+                        throw new Error('No response from AI');
+                    }
+
+                    // Parse AI response
+                    let analysisResult;
+                    try {
+                        analysisResult = JSON.parse(aiResponse);
+                    } catch (parseError) {
+                        // If JSON parsing fails, create a basic result structure
+                        analysisResult = {
+                            score: 5,
+                            reasoning: aiResponse,
+                            recommendations: ['Review the analysis and refine as needed'],
+                            factors: [
+                                {
+                                    name: 'General Analysis',
+                                    score: 5,
+                                    description: 'AI provided text analysis',
+                                    weight: 1.0
+                                }
+                            ]
+                        };
+                    }
+
+                    const processingTime = Date.now() - startTime;
+
+                    res.writeHead(200, { 'Content-Type': 'application/json' });
+                    res.end(JSON.stringify({
+                        success: true,
+                        data: {
+                            result: analysisResult,
+                            template,
+                            taskId: task?.id
+                        },
+                        metadata: {
+                            timestamp: new Date().toISOString(),
+                            requestId: Date.now().toString(),
+                            processingTime
+                        }
+                    }));
+
+                } catch (error) {
+                    console.error('Analysis error:', error);
+                    res.writeHead(500, { 'Content-Type': 'application/json' });
+                    res.end(JSON.stringify({
+                        success: false,
+                        error: {
+                            code: 'ANALYSIS_ERROR',
+                            message: error.message,
+                            details: error.stack
+                        },
+                        metadata: {
+                            timestamp: new Date().toISOString(),
+                            requestId: Date.now().toString(),
+                            processingTime: Date.now() - (startTime || Date.now())
+                        }
+                    }));
+                }
+            });
+
+        } else if (url.pathname === '/api/error-report' && req.method === 'POST') {
+            // Handle error reporting
+            let body = '';
+            req.on('data', chunk => body += chunk.toString());
+            req.on('end', async () => {
+                try {
+                    const errorReport = JSON.parse(body);
+                    const timestamp = new Date().toISOString();
+                    
+                    // Log error to console (in production, you might want to send to a logging service)
+                    console.error('Error Report:', {
+                        timestamp,
+                        errorId: errorReport.errorInfo?.code || 'unknown',
+                        type: errorReport.errorInfo?.type || 'unknown',
+                        message: errorReport.errorInfo?.message || 'No message',
+                        severity: errorReport.errorInfo?.severity || 'medium',
+                        url: errorReport.environment?.url || 'unknown',
+                        userAgent: errorReport.environment?.userAgent || 'unknown',
+                        stack: errorReport.errorInfo?.stack || 'No stack trace',
+                    });
+
+                    // In a real application, you would:
+                    // 1. Store the error in a database
+                    // 2. Send to error tracking service (Sentry, Bugsnag, etc.)
+                    // 3. Send alerts for critical errors
+                    // 4. Aggregate error statistics
+
+                    // For now, we'll just acknowledge receipt
+                    res.writeHead(200, { 'Content-Type': 'application/json' });
+                    res.end(JSON.stringify({
+                        success: true,
+                        message: 'Error report received',
+                        reportId: Date.now().toString(36) + Math.random().toString(36).substr(2, 9),
+                        timestamp,
+                    }));
+
+                } catch (error) {
+                    console.error('Error processing error report:', error);
+                    res.writeHead(400, { 'Content-Type': 'application/json' });
+                    res.end(JSON.stringify({
+                        success: false,
+                        error: 'Invalid error report format',
+                        message: error.message,
+                    }));
+                }
+            });
+
         } else if (url.pathname === '/api/chat' && req.method === 'POST') {
             // Handle chat with AI agents
             let body = '';

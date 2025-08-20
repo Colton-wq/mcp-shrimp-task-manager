@@ -29,8 +29,10 @@ export const executeTaskSchema = z.object({
     .describe("Unique identifier of the task to execute. MUST BE: valid UUID v4 format from existing task in system. HOW TO GET: use list_tasks to see all tasks, or query_task to search by name/description. EXAMPLE: 'a1b2c3d4-e5f6-4789-a012-b3c4d5e6f789'. VALIDATION: 8-4-4-4-12 hexadecimal pattern."),
   project: z
     .string()
-    .optional()
-    .describe("Target project context for task execution. OPTIONAL - defaults to current session project if not specified. USE WHEN: working with multiple projects, need to specify different project context. EXAMPLE: 'my-web-app', 'backend-api', 'mobile-client'. LEAVE EMPTY: to use current session project."),
+    .min(1, {
+      message: "Project parameter is required for multi-agent safety. Please specify the project name to ensure task data isolation and prevent concurrent conflicts. EXAMPLE: 'my-web-app', 'backend-service', 'mobile-client'. This parameter is mandatory in both MCPHub gateway mode and single IDE mode.",
+    })
+    .describe("REQUIRED - Target project context for task execution. MANDATORY for multi-agent concurrent safety. Ensures task is executed in correct project context and prevents data conflicts between different agents. EXAMPLES: 'my-web-app', 'backend-api', 'mobile-client'. CRITICAL: This parameter prevents concurrent agent conflicts in both MCPHub gateway mode and single IDE mode."),
 });
 
 export async function executeTask({
@@ -38,12 +40,12 @@ export async function executeTask({
   project,
 }: z.infer<typeof executeTaskSchema>) {
   try {
-    // 使用并发安全的项目上下文管理
-    // Use concurrent-safe project context management
+    // 使用强制项目参数确保并发安全的项目上下文管理
+    // Use mandatory project parameter for concurrent-safe project context management
     const { ProjectSession } = await import("../../utils/projectSession.js");
     
     return await ProjectSession.withProjectContext(project, async () => {
-      const task = await getTaskById(taskId);
+      const task = await getTaskById(taskId, project);
     if (!task) {
       return createNotFoundError(
         "Task",
@@ -54,7 +56,7 @@ export async function executeTask({
 
     // 檢查任務是否可以執行（依賴任務都已完成）
     // Check if task can be executed (all dependency tasks are completed)
-    const executionCheck = await canExecuteTask(taskId);
+    const executionCheck = await canExecuteTask(taskId, project);
     if (!executionCheck.canExecute) {
       const blockedBy = executionCheck.blockedBy || [];
       return createDependencyError(taskId, blockedBy);
@@ -90,11 +92,11 @@ export async function executeTask({
 
     // 更新任務狀態為「進行中」
     // Update task status to "in progress"
-    await updateTaskStatus(taskId, TaskStatus.IN_PROGRESS);
+    await updateTaskStatus(taskId, TaskStatus.IN_PROGRESS, project);
 
     // 評估任務複雜度
     // Assess task complexity
-    const complexityResult = await assessTaskComplexity(taskId);
+    const complexityResult = await assessTaskComplexity(taskId, project);
 
     // 智能路径建议
     // Smart path recommendations
@@ -119,7 +121,7 @@ export async function executeTask({
     const dependencyTasks: Task[] = [];
     if (task.dependencies && task.dependencies.length > 0) {
       for (const dep of task.dependencies) {
-        const depTask = await getTaskById(dep.taskId);
+        const depTask = await getTaskById(dep.taskId, project);
         if (depTask) {
           dependencyTasks.push(depTask);
         }
@@ -152,6 +154,9 @@ export async function executeTask({
       relatedFilesSummary,
       dependencyTasks,
       pathRecommendation,
+      enableIntelligentAnalysis: true, // 启用智能分析功能
+      projectContext: project,
+      relatedTasks: dependencyTasks || [],
     });
 
       return createSuccessResponse(prompt);

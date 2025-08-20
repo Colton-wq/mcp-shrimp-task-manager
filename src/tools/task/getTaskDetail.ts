@@ -5,7 +5,12 @@ import { getGetTaskDetailPrompt } from "../../prompts/index.js";
 // 取得完整任務詳情的參數
 // Get parameters for full task details
 export const getTaskDetailSchema = z.object({
-  project: z.string().optional().describe("指定檢視的項目（可選），省略則使用目前會話項目"),
+  project: z
+    .string()
+    .min(1, {
+      message: "Project parameter is required for multi-agent safety. Please specify the project name to ensure task data isolation and prevent concurrent conflicts. EXAMPLE: 'my-web-app', 'backend-service', 'mobile-client'. This parameter is mandatory in both MCPHub gateway mode and single IDE mode.",
+    })
+    .describe("REQUIRED - Target project name for task detail retrieval. MANDATORY for multi-agent concurrent safety. Ensures task details are retrieved from correct project context and prevents data conflicts between different agents. EXAMPLES: 'my-web-app', 'backend-api', 'mobile-client'. CRITICAL: This parameter prevents concurrent agent conflicts in both MCPHub gateway mode and single IDE mode."),
   taskId: z
     .string()
     .min(1, {
@@ -30,7 +35,7 @@ export async function getTaskDetail({
     const { ProjectSession } = await import("../../utils/projectSession.js");
     
     return await ProjectSession.withProjectContext(project, async () => {
-      const result = await searchTasksWithCommand(taskId, true, 1, 1);
+      const result = await searchTasksWithCommand(taskId, true, 1, 1, project);
 
     // 檢查是否找到任務
     // Check if task was found

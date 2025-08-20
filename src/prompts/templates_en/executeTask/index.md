@@ -22,6 +22,8 @@
 
 {complexityTemplate}
 
+{intelligentAnalysisTemplate}
+
 ## Execution Steps
 
 1. **Analyze Requirements** - Understand task requirements and constraints

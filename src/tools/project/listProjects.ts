@@ -5,7 +5,9 @@ import fs from "fs/promises";
 export const listProjectsSchema = z.object({});
 
 export async function listProjects() {
-  const dataDir = await getDataDir(true);
+  // 使用临时项目名获取基础路径来列出所有项目
+  // Use temporary project name to get base path for listing all projects
+  const dataDir = await getDataDir(true, "temp");
   const path = await import("path");
   const parent = path.dirname(dataDir);
   let projects: string[] = [];

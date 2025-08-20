@@ -112,7 +112,9 @@ export async function createWebServer() {
 
       const websiteUrl = `[Task Manager UI](http://localhost:${port}?lang=${language})`;
       const websiteFilePath = await getWebGuiFilePath();
-      const DATA_DIR = await getDataDir();
+      // Web服务器使用默认项目"main"确保并发安全
+      // Web server uses default project "main" for concurrent safety
+      const DATA_DIR = await getDataDir(false, "main");
       try {
         await fsPromises.access(DATA_DIR);
       } catch (error) {

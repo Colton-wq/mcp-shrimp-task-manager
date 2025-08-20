@@ -107,6 +107,11 @@ export async function getAnalyzeTaskPrompt(
     summary: params.summary,
     initialConcept: params.initialConcept,
     iterationPrompt: iterationPrompt,
+    // 启用上下文感知分析
+    // Enable context-aware analysis
+    enableContextAnalysis: true,
+    description: params.summary,
+    requirements: params.initialConcept
   });
 
   // 載入可能的自定義 prompt

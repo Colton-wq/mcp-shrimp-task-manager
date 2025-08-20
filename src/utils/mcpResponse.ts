@@ -208,3 +208,59 @@ export async function withErrorHandling<T>(
     return createInternalError(operation, error instanceof Error ? error : new Error(String(error)));
   }
 }
+
+/**
+ * Create workflow-aware response with continuation guidance
+ */
+export function createWorkflowResponse(
+  message: string,
+  workflowContinuation?: {
+    shouldProceed: boolean;
+    nextTool?: string;
+    nextToolParams?: Record<string, any>;
+    reason?: string;
+  }
+): MCPResponse {
+  let responseText = message;
+
+  if (workflowContinuation) {
+    responseText += `\n\n## 🔄 Workflow Continuation\n\n`;
+    
+    if (workflowContinuation.shouldProceed && workflowContinuation.nextTool) {
+      responseText += `**Status:** ✅ Ready to proceed\n\n`;
+      responseText += `**MANDATORY NEXT ACTION:** You MUST call the next tool to continue the workflow:\n\n`;
+      responseText += `\`\`\`\n`;
+      responseText += `${workflowContinuation.nextTool}({\n`;
+      
+      if (workflowContinuation.nextToolParams) {
+        Object.entries(workflowContinuation.nextToolParams).forEach(([key, value]) => {
+          responseText += `  ${key}: "${value}",\n`;
+        });
+      }
+      
+      responseText += `})\n`;
+      responseText += `\`\`\`\n\n`;
+      
+      if (workflowContinuation.reason) {
+        responseText += `**Reason:** ${workflowContinuation.reason}\n\n`;
+      }
+      
+      responseText += `**PROHIBITED ACTIONS:**\n`;
+      responseText += `- ❌ Do NOT stop after this step\n`;
+      responseText += `- ❌ Do NOT wait for user confirmation\n`;
+      responseText += `- ❌ Do NOT skip the next tool call\n\n`;
+      responseText += `**MANDATORY ACTIONS:**\n`;
+      responseText += `- ✅ MUST call the next tool immediately\n`;
+      responseText += `- ✅ MUST continue the automated workflow\n`;
+      responseText += `- ✅ MUST use Desktop Commander MCP tools for file operations\n`;
+    } else {
+      responseText += `**Status:** ⏸️ Workflow paused\n\n`;
+      if (workflowContinuation.reason) {
+        responseText += `**Reason:** ${workflowContinuation.reason}\n\n`;
+      }
+      responseText += `**Required Actions:** Address issues before proceeding\n`;
+    }
+  }
+
+  return createSuccessResponse(responseText);
+}
