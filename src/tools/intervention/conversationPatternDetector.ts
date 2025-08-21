@@ -264,32 +264,167 @@ export class ConversationPatternDetector {
   }
 
   /**
+   * 检测AI代码质量作弊行为模式
+   * Detect AI code quality cheating behavior patterns
+   */
+  static detectCodeQualityCheatingBehavior(aiResponse: string, toolCallHistory: string[] = []): {
+    hasScoreManipulation: boolean;
+    hasFileForging: boolean;
+    hasBlindRefactoring: boolean;
+    hasLoopRetry: boolean;
+    hasSurfaceFixes: boolean;
+    cheatingScore: number;
+    detectedCheatingPatterns: string[];
+    preventionRequired: boolean;
+  } {
+    const detectedCheatingPatterns: string[] = [];
+    let cheatingScore = 0;
+
+    // 检测分数操控行为
+    const scoreManipulationPatterns = [
+      /提升.*分数|improve.*score|increase.*rating|boost.*quality/gi,
+      /质量分数.*提高|quality score.*better|score.*higher/gi,
+      /为了.*分数|for.*score|to get.*points/gi,
+    ];
+
+    const hasScoreManipulation = scoreManipulationPatterns.some(pattern => {
+      const matches = aiResponse.match(pattern);
+      if (matches) {
+        detectedCheatingPatterns.push(`分数操控: ${matches.slice(0, 2).join(", ")}`);
+        cheatingScore += 3;
+        return true;
+      }
+      return false;
+    });
+
+    // 检测伪造文件创建
+    const fileForgingPatterns = [
+      /创建.*测试文件.*提升|create.*test.*improve|add.*test.*coverage/gi,
+      /创建.*空.*文件|create.*empty.*file|dummy.*file/gi,
+      /虚假.*实现|fake.*implementation|placeholder.*code/gi,
+    ];
+
+    const hasFileForging = fileForgingPatterns.some(pattern => {
+      const matches = aiResponse.match(pattern);
+      if (matches) {
+        detectedCheatingPatterns.push(`文件伪造: ${matches.slice(0, 2).join(", ")}`);
+        cheatingScore += 4;
+        return true;
+      }
+      return false;
+    });
+
+    // 检测盲目重构行为
+    const blindRefactoringPatterns = [
+      /重构.*复杂.*函数|refactor.*complex.*function|simplify.*function/gi,
+      /减少.*复杂度|reduce.*complexity|lower.*complexity/gi,
+      /修改.*不相关.*代码|modify.*unrelated.*code/gi,
+    ];
+
+    const hasBlindRefactoring = blindRefactoringPatterns.some(pattern => {
+      const matches = aiResponse.match(pattern);
+      if (matches) {
+        detectedCheatingPatterns.push(`盲目重构: ${matches.slice(0, 2).join(", ")}`);
+        cheatingScore += 3;
+        return true;
+      }
+      return false;
+    });
+
+    // 检测循环重试模式
+    const loopRetryPatterns = [
+      /再次.*运行|run.*again|try.*again|重新.*检查/gi,
+      /重复.*调用|repeat.*call|call.*multiple.*times/gi,
+    ];
+
+    const hasLoopRetry = loopRetryPatterns.some(pattern => {
+      const matches = aiResponse.match(pattern);
+      if (matches) {
+        detectedCheatingPatterns.push(`循环重试: ${matches.slice(0, 2).join(", ")}`);
+        cheatingScore += 2;
+        return true;
+      }
+      return false;
+    });
+
+    // 检测表面修复行为
+    const surfaceFixPatterns = [
+      /表面.*修复|surface.*fix|cosmetic.*change/gi,
+      /简单.*修改|simple.*change|quick.*fix/gi,
+      /只需要.*修改|just.*modify|only.*need.*to/gi,
+    ];
+
+    const hasSurfaceFixes = surfaceFixPatterns.some(pattern => {
+      const matches = aiResponse.match(pattern);
+      if (matches) {
+        detectedCheatingPatterns.push(`表面修复: ${matches.slice(0, 2).join(", ")}`);
+        cheatingScore += 2;
+        return true;
+      }
+      return false;
+    });
+
+    // 检查工具调用历史中的异常模式
+    if (toolCallHistory.length > 0) {
+      const recentCalls = toolCallHistory.slice(-5);
+      const qualityToolCalls = recentCalls.filter(call =>
+        call.includes('codeReviewAndCleanupTool') ||
+        call.includes('qualityAnalyzer')
+      );
+
+      if (qualityToolCalls.length >= 3) {
+        detectedCheatingPatterns.push(`频繁质量检查: ${qualityToolCalls.length}次连续调用`);
+        cheatingScore += 2;
+      }
+    }
+
+    return {
+      hasScoreManipulation,
+      hasFileForging,
+      hasBlindRefactoring,
+      hasLoopRetry,
+      hasSurfaceFixes,
+      cheatingScore,
+      detectedCheatingPatterns,
+      preventionRequired: cheatingScore >= 5,
+    };
+  }
+
+  /**
    * 综合分析对话上下文
    * Comprehensive conversation context analysis
    */
   static analyzeConversationContext(
     userInput: string,
     aiResponse: string,
-    conversationHistory: string = ""
+    conversationHistory: string = "",
+    toolCallHistory: string[] = []
   ): {
     naturalTriggers: ReturnType<typeof ConversationPatternDetector.detectNaturalTriggers>;
     aiRisks: ReturnType<typeof ConversationPatternDetector.detectAIResponseRisks>;
+    codeQualityCheating: ReturnType<typeof ConversationPatternDetector.detectCodeQualityCheatingBehavior>;
     overallRiskLevel: "LOW" | "MEDIUM" | "HIGH" | "CRITICAL";
-    recommendedIntervention: "NONE" | "MONITOR" | "VERIFY" | "FORCE_SEARCH";
+    recommendedIntervention: "NONE" | "MONITOR" | "VERIFY" | "FORCE_SEARCH" | "PREVENT_CHEATING";
     interventionReason: string;
   } {
     const fullContext = `${conversationHistory} ${userInput} ${aiResponse}`;
-    
+
     const naturalTriggers = this.detectNaturalTriggers(userInput);
     const aiRisks = this.detectAIResponseRisks(aiResponse);
+    const codeQualityCheating = this.detectCodeQualityCheatingBehavior(aiResponse, toolCallHistory);
 
     // 计算总体风险级别
-    const totalScore = naturalTriggers.triggerScore + aiRisks.riskScore;
+    const totalScore = naturalTriggers.triggerScore + aiRisks.riskScore + codeQualityCheating.cheatingScore;
     let overallRiskLevel: "LOW" | "MEDIUM" | "HIGH" | "CRITICAL";
-    let recommendedIntervention: "NONE" | "MONITOR" | "VERIFY" | "FORCE_SEARCH";
+    let recommendedIntervention: "NONE" | "MONITOR" | "VERIFY" | "FORCE_SEARCH" | "PREVENT_CHEATING";
     let interventionReason: string;
 
-    if (totalScore >= 8 || aiRisks.interventionRequired) {
+    // 优先检查代码质量作弊行为
+    if (codeQualityCheating.preventionRequired) {
+      overallRiskLevel = "CRITICAL";
+      recommendedIntervention = "PREVENT_CHEATING";
+      interventionReason = `检测到AI代码质量作弊行为: ${codeQualityCheating.detectedCheatingPatterns.join(", ")}`;
+    } else if (totalScore >= 8 || aiRisks.interventionRequired) {
       overallRiskLevel = "CRITICAL";
       recommendedIntervention = "FORCE_SEARCH";
       interventionReason = "检测到高风险AI行为模式，需要立即强制搜索验证";
@@ -314,6 +449,7 @@ export class ConversationPatternDetector {
     return {
       naturalTriggers,
       aiRisks,
+      codeQualityCheating,
       overallRiskLevel,
       recommendedIntervention,
       interventionReason,

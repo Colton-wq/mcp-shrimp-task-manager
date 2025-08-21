@@ -249,7 +249,7 @@ describe("Performance and Concurrency Tests", () => {
         workflows.push(workflow);
       }
       
-      const monitoringTasks = [];
+      const monitoringTasks: Promise<any>[] = [];
       
       // 并发访问监控数据
       workflows.forEach(workflow => {

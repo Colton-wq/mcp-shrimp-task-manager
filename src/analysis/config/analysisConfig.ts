@@ -8,7 +8,7 @@
 import * as fs from 'fs';
 import * as path from 'path';
 import { z } from 'zod';
-import { AnalyzerType, CacheStrategy } from '../interfaces/ICodeAnalyzer';
+import { AnalyzerType, CacheStrategy } from '../interfaces/ICodeAnalyzer.js';
 
 // ============================================================================
 // 配置Schema定义
@@ -434,7 +434,7 @@ export class AnalysisConfigManager {
       }
       return {
         isValid: false,
-        errors: [error.message || '未知配置错误'],
+        errors: [(error as Error).message || '未知配置错误'],
         warnings: []
       };
     }
@@ -524,7 +524,7 @@ export class AnalysisConfigManager {
         throw new Error(`不支持的配置文件格式: ${ext}`);
       }
     } catch (error) {
-      throw new Error(`加载配置文件失败 ${configPath}: ${error.message}`);
+      throw new Error(`加载配置文件失败 ${configPath}: ${(error as Error).message}`);
     }
   }
 
@@ -543,28 +543,28 @@ export class AnalysisConfigManager {
     // 深度合并tools配置
     if (userConfig.tools) {
       merged.tools = {
-        eslint: { ...defaultConfig.tools.eslint, ...userConfig.tools.eslint },
-        typescript: { ...defaultConfig.tools.typescript, ...userConfig.tools.typescript },
-        jest: { ...defaultConfig.tools.jest, ...userConfig.tools.jest },
-        sonarjs: { ...defaultConfig.tools.sonarjs, ...userConfig.tools.sonarjs }
+        eslint: { ...(defaultConfig as any).tools.eslint, ...userConfig.tools.eslint },
+        typescript: { ...(defaultConfig as any).tools.typescript, ...userConfig.tools.typescript },
+        jest: { ...(defaultConfig as any).tools.jest, ...userConfig.tools.jest },
+        sonarjs: { ...(defaultConfig as any).tools.sonarjs, ...userConfig.tools.sonarjs }
       };
     }
 
     // 深度合并scoring配置
     if (userConfig.scoring) {
       merged.scoring = {
-        weights: { ...defaultConfig.scoring.weights, ...userConfig.scoring.weights },
+        weights: { ...(defaultConfig as any).scoring.weights, ...userConfig.scoring.weights },
         thresholds: {
-          complexity: { ...defaultConfig.scoring.thresholds.complexity, ...userConfig.scoring.thresholds?.complexity },
-          coverage: { ...defaultConfig.scoring.thresholds.coverage, ...userConfig.scoring.thresholds?.coverage }
+          complexity: { ...(defaultConfig as any).scoring.thresholds.complexity, ...userConfig.scoring.thresholds?.complexity },
+          coverage: { ...(defaultConfig as any).scoring.thresholds.coverage, ...userConfig.scoring.thresholds?.coverage }
         }
       };
     }
 
     // 合并其他顶级配置
     Object.keys(userConfig).forEach(key => {
-      if (key !== 'tools' && key !== 'scoring' && userConfig[key] !== undefined) {
-        merged[key] = { ...defaultConfig[key], ...userConfig[key] };
+      if (key !== 'tools' && key !== 'scoring' && (userConfig as any)[key] !== undefined) {
+        (merged as any)[key] = { ...(defaultConfig as any)[key], ...(userConfig as any)[key] };
       }
     });
 
@@ -582,7 +582,7 @@ export class AnalysisConfigManager {
  * @returns ESLint配置对象
  */
 export function getESLintConfig(config: AnalysisConfig): ESLintConfig {
-  return config.tools.eslint || {};
+  return (config as any).tools.eslint || {};
 }
 
 /**
@@ -591,7 +591,7 @@ export function getESLintConfig(config: AnalysisConfig): ESLintConfig {
  * @returns TypeScript配置对象
  */
 export function getTypeScriptConfig(config: AnalysisConfig): TypeScriptConfig {
-  return config.tools.typescript || {};
+  return (config as any).tools.typescript || {};
 }
 
 /**
@@ -600,7 +600,7 @@ export function getTypeScriptConfig(config: AnalysisConfig): TypeScriptConfig {
  * @returns Jest配置对象
  */
 export function getJestConfig(config: AnalysisConfig): JestConfig {
-  return config.tools.jest || {};
+  return (config as any).tools.jest || {};
 }
 
 /**
@@ -609,7 +609,7 @@ export function getJestConfig(config: AnalysisConfig): JestConfig {
  * @returns SonarJS配置对象
  */
 export function getSonarJSConfig(config: AnalysisConfig): SonarJSConfig {
-  return config.tools.sonarjs || { enabled: false };
+  return (config as any).tools.sonarjs || { enabled: false };
 }
 
 /**
@@ -619,7 +619,7 @@ export function getSonarJSConfig(config: AnalysisConfig): SonarJSConfig {
  * @returns 是否启用
  */
 export function isAnalyzerEnabled(config: AnalysisConfig, analyzerType: AnalyzerType): boolean {
-  return config.enabledAnalyzers?.includes(analyzerType) ?? true;
+  return (config as any).enabledAnalyzers?.includes(analyzerType) ?? true;
 }
 
 /**
@@ -628,7 +628,7 @@ export function isAnalyzerEnabled(config: AnalysisConfig, analyzerType: Analyzer
  * @returns 文件过滤配置
  */
 export function getFileFilter(config: AnalysisConfig): FileFilterConfig {
-  return config.files;
+  return (config as any).files;
 }
 
 /**
@@ -637,7 +637,7 @@ export function getFileFilter(config: AnalysisConfig): FileFilterConfig {
  * @returns 性能配置
  */
 export function getPerformanceConfig(config: AnalysisConfig): PerformanceConfig {
-  return config.performance;
+  return (config as any).performance;
 }
 
 /**
@@ -646,7 +646,7 @@ export function getPerformanceConfig(config: AnalysisConfig): PerformanceConfig 
  * @returns 评分配置
  */
 export function getScoringConfig(config: AnalysisConfig): ScoringConfig {
-  return config.scoring;
+  return (config as any).scoring;
 }
 
 /**
