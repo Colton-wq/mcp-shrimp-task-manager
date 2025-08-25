@@ -9,6 +9,7 @@ import {
   loadPrompt,
   generatePrompt,
   loadPromptFromTemplate,
+  enhancePromptWithContext,
 } from "../loader.js";
 import { Task, TaskDependency } from "../../types/index.js";
 
@@ -145,6 +146,19 @@ export async function getPlanTaskPrompt(
     enableContextAnalysis: true,
     existingTasks: [...(params.completedTasks || []), ...(params.pendingTasks || [])]
   });
+
+  // 强制集成代码库分析 - 根据E:\MCP\rules.md要求
+  // Force codebase analysis integration - per E:\MCP\rules.md requirements
+  try {
+    prompt = await enhancePromptWithContext(prompt, {
+      description: params.description,
+      requirements: params.requirements,
+      forceCodebaseAnalysis: true,
+      minimumHits: 5
+    });
+  } catch (error) {
+    console.warn("Codebase analysis failed, proceeding with basic prompt:", error);
+  }
 
   // 載入可能的自定義 prompt
   // Load possible custom prompt

@@ -393,7 +393,7 @@ export async function verifyTask({
     workflow = SimpleWorkflowManager.createWorkflow(
       taskId,
       project,
-      ["verify_task", "code_review_and_cleanup_tool", "execute_task"]
+      ["verify_task", "mandatory_code_review", "execute_task"]
     );
   }
 

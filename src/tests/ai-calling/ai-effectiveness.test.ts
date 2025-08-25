@@ -90,7 +90,7 @@ describe('AI Calling Effectiveness', () => {
       const text = response.content[0].text;
       
       // Should follow structured format
-      expect(text).toMatch(/âŒ INTERNAL_ERROR: Database connection failed/);
+      expect(text).toMatch(/â?INTERNAL_ERROR: Database connection failed/);
       expect(text).toMatch(/ðŸ“‹ Details: Connection timeout after 30 seconds/);
       expect(text).toMatch(/ðŸ”§ Recovery Action: Check database connectivity and retry/);
       expect(text).toMatch(/ðŸ”„ This operation can be retried/);
@@ -150,12 +150,12 @@ describe('AI Calling Effectiveness', () => {
         {
           complexity: 'MEDIUM', 
           expectedPath: 'ðŸ“‹ Standard Path',
-          expectedAdvice: 'plan_task â†’ execute_task'
+          expectedAdvice: 'plan_task â†?execute_task'
         },
         {
           complexity: 'HIGH',
           expectedPath: 'ðŸ”¬ Deep Path',
-          expectedAdvice: 'plan_task â†’ analyze_task â†’ reflect_task â†’ split_tasks â†’ execute_task'
+          expectedAdvice: 'plan_task â†?analyze_task â†?reflect_task â†?split_tasks â†?execute_task'
         }
       ];
 

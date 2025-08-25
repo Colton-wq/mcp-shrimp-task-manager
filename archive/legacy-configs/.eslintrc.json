@@ -1,0 +1,76 @@
+{
+  "parser": "@typescript-eslint/parser",
+  "extends": [
+    "eslint:recommended",
+    "@typescript-eslint/recommended",
+    "plugin:@typescript-eslint/recommended-type-checked"
+  ],
+  "plugins": [
+    "@typescript-eslint",
+    "security",
+    "sonarjs"
+  ],
+  "parserOptions": {
+    "ecmaVersion": 2022,
+    "sourceType": "module",
+    "project": "./tsconfig.json"
+  },
+  "env": {
+    "node": true,
+    "es2022": true
+  },
+  "rules": {
+    // TypeScript 特定规则
+    "@typescript-eslint/no-unused-vars": ["error", { "argsIgnorePattern": "^_" }],
+    "@typescript-eslint/no-explicit-any": "warn",
+    "@typescript-eslint/explicit-function-return-type": "off",
+    "@typescript-eslint/explicit-module-boundary-types": "off",
+    "@typescript-eslint/no-non-null-assertion": "warn",
+    "@typescript-eslint/prefer-const": "error",
+    "@typescript-eslint/no-var-requires": "error",
+
+    // 复杂度控制
+    "complexity": ["warn", 10],
+    "max-depth": ["warn", 4],
+    "max-lines": ["warn", 300],
+    "max-lines-per-function": ["warn", 50],
+    "max-params": ["warn", 5],
+
+    // 代码质量
+    "no-console": "warn",
+    "no-debugger": "error",
+    "no-duplicate-imports": "error",
+    "no-unused-expressions": "error",
+    "prefer-const": "error",
+    "no-var": "error",
+
+    // 安全规则
+    "security/detect-object-injection": "warn",
+    "security/detect-non-literal-fs-filename": "warn",
+    "security/detect-unsafe-regex": "error",
+
+    // SonarJS 代码质量规则
+    "sonarjs/cognitive-complexity": ["warn", 15],
+    "sonarjs/no-duplicate-string": ["warn", 3],
+    "sonarjs/no-identical-functions": "warn",
+    "sonarjs/no-redundant-boolean": "error",
+    "sonarjs/prefer-immediate-return": "warn"
+  },
+  "overrides": [
+    {
+      "files": ["**/*.test.ts", "**/*.spec.ts"],
+      "rules": {
+        "@typescript-eslint/no-explicit-any": "off",
+        "no-console": "off",
+        "max-lines-per-function": "off"
+      }
+    }
+  ],
+  "ignorePatterns": [
+    "dist/",
+    "node_modules/",
+    "coverage/",
+    "*.js",
+    "*.d.ts"
+  ]
+}

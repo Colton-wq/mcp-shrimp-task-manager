@@ -13,6 +13,52 @@ import {
 import { Task } from "../../types/index.js";
 
 /**
+ * 文档创建任务过滤器
+ * Document creation task filter
+ * 检测并过滤可能的文档创建任务
+ * Detects and filters potential document creation tasks
+ */
+const DOCUMENT_CREATION_PATTERNS = [
+  /documentation/i,
+  /readme/i,
+  /guide/i,
+  /manual/i,
+  /\.md$/i,
+  /\.txt$/i,
+  /create.*document/i,
+  /write.*document/i,
+  /generate.*document/i,
+  /add.*documentation/i,
+  /update.*readme/i,
+  /create.*guide/i,
+  /write.*guide/i,
+  // 中文文档相关模式
+  /文档/i,
+  /指南/i,
+  /手册/i,
+  /说明/i,
+  /教程/i,
+  /编写.*文档/i,
+  /创建.*文档/i,
+  /生成.*文档/i,
+  /写.*文档/i,
+  /创建.*指南/i,
+  /编写.*指南/i,
+  /api.*文档/i,
+  /使用.*指南/i,
+];
+
+/**
+ * 检查任务是否为文档创建任务
+ * Check if task is a document creation task
+ */
+function isDocumentCreationTask(task: Task): boolean {
+  const textToCheck = `${task.name} ${task.description} ${task.implementationGuide || ''}`.toLowerCase();
+
+  return DOCUMENT_CREATION_PATTERNS.some(pattern => pattern.test(textToCheck));
+}
+
+/**
  * splitTasks prompt 參數介面
  * splitTasks prompt parameter interface
  */
@@ -37,7 +83,17 @@ export async function getSplitTasksPrompt(
     "splitTasks/taskDetails.md"
   );
 
-  const tasksContent = params.createdTasks
+  // 过滤文档创建任务
+  // Filter document creation tasks
+  const filteredTasks = params.createdTasks.filter(task => {
+    const isDocTask = isDocumentCreationTask(task);
+    if (isDocTask) {
+      console.log(`🚫 Filtered out document creation task: ${task.name}`);
+    }
+    return !isDocTask;
+  });
+
+  const tasksContent = filteredTasks
     .map((task, index) => {
       let implementationGuide = "no implementation guide";
       if (task.implementationGuide) {

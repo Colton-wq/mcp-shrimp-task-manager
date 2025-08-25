@@ -15,11 +15,11 @@
 **關鍵：您必須遵循此解決工作流程：**
 
 ### 步驟1：立即問題分析（強制性）
-**您必須調用 `code_review_and_cleanup_tool` 來識別具體問題：**
+**您必須調用 `mandatory_code_review` 來識別具體問題：**
 
 **必需的工具調用：**
 ```
-code_review_and_cleanup_tool({
+mandatory_code_review({
   taskId: "{id}",
   project: "current_project_name",
   reviewScope: "diagnostic",
@@ -45,7 +45,7 @@ code_review_and_cleanup_tool({
 - ❌ 不要跳過診斷步驟
 
 **強制性操作：**
-- ✅ 必須調用 `code_review_and_cleanup_tool` 進行診斷
+- ✅ 必須調用 `mandatory_code_review` 進行診斷
 - ✅ 必須系統性地修復所有已識別的問題
 - ✅ 必須在修復後重新驗證
 - ✅ 必須使用Desktop Commander MCP工具進行文件操作

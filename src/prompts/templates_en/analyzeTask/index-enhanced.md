@@ -102,11 +102,11 @@ Complete the following focused analysis and call `reflect_task` at the end:
 - Are there clear module boundaries?
 - Is error handling adequate?
 
-**Documentation & Testing:**
-- What documentation is needed?
+**Testing & Validation:**
 - How will this be tested?
 - Are there edge cases to consider?
 - What monitoring is required?
+- What validation criteria should be applied?
 
 ### 🚨 **MCP Tool Usage Decision Tree**
 

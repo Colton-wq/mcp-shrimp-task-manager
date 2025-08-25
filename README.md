@@ -26,6 +26,16 @@
 
 > 🚀 An intelligent task management system based on Model Context Protocol (MCP), providing an efficient programming workflow framework for AI Agents.
 
+## 🏆 Quality Assurance
+
+**Latest Quality Verification**: August 21, 2025  
+**Quality Score**: 84/100 ✅  
+**Test Coverage**: 1200+ lines of unit tests  
+**Performance**: Optimized async file operations  
+**Architecture**: Modular design with 81% complexity reduction  
+
+📊 [View Full Quality Report](docs/QUALITY_VERIFICATION_REPORT.md)
+
 <a href="https://glama.ai/mcp/servers/@cjo4m06/mcp-shrimp-task-manager">
   <img width="380" height="200" src="https://glama.ai/mcp/servers/@cjo4m06/mcp-shrimp-task-manager/badge" alt="Shrimp Task Manager MCP server" />
 </a>
@@ -701,6 +711,63 @@ verify_task → reflect_task → Task Summary → Memory Storage
 - **Git Integration**: Version control for task history
 - **Environment Variables**: Extensive configuration options
 - **Web APIs**: RESTful endpoints for GUI interaction
+
+## 🛡️ Safety and Security
+
+### Important Safety Guidelines
+
+**⚠️ READ BEFORE USE**: This tool includes powerful file cleanup and code review capabilities that can modify or delete files. Please follow these safety guidelines:
+
+1. **Always Create Backups**: The system automatically creates Git backups, but ensure your project is in a Git repository
+2. **Use Safe Mode**: Enable safe mode for conservative file operations
+3. **Start with Analysis**: Use `analysis_only` mode to preview operations before execution
+4. **Avoid Aggressive Mode**: Only use aggressive cleanup mode in development environments
+
+### Quick Safety Setup
+
+```bash
+# 1. Enable safe mode configuration
+config_wizard_tool({
+  "project": "your-project",
+  "operation": "apply_config",
+  "config": {
+    "safeMode": true,     // Enable safety protections
+    "qualityLevel": 3,    // Balanced quality requirements
+    "debug": true         // Show detailed information
+  }
+})
+
+# 2. Create backup before operations
+git_backup_tool({
+  "project": "your-project", 
+  "taskId": "your-task-id",
+  "operation": "create_backup"
+})
+
+# 3. Preview operations first
+mandatory_code_review({
+  "taskId": "current-task-id",
+  "project": "current-project",
+  "submissionContext": "Code review request",
+  "claimedEvidence": "Implementation evidence",
+  "reviewScope": "comprehensive"  // Safe: comprehensive review
+})
+```
+
+### Safety Documentation
+
+- 📖 [Complete Safety Guide](docs/SAFETY_GUIDE.md) - Essential reading for all users
+- 🏆 [Best Practices](docs/BEST_PRACTICES.md) - Recommended workflows and configurations  
+- 🔧 [Troubleshooting Guide](docs/troubleshooting-guide.md) - Problem resolution and recovery
+- ✅ [Safety Checklist](docs/safety-checklist.md) - Pre-operation safety verification
+
+### Built-in Safety Features
+
+- **Automatic Git Backup**: Every operation creates recoverable Git commits
+- **Path Validation**: Prevents operations in system directories
+- **Safe Mode Protection**: Conservative file cleanup with extra safeguards
+- **Operation Preview**: Analysis mode shows what will be changed before execution
+- **Rollback Capability**: Easy recovery using Git history
 
 ## 🔧 Technical Implementation
 

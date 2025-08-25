@@ -17,6 +17,7 @@ import {
   createStatusResponse,
   withErrorHandling,
 } from "../../utils/mcpResponse.js";
+import { ContextDepth } from "../../types/executeTask.js";
 
 // 執行任務工具
 // Execute task tool
@@ -33,11 +34,33 @@ export const executeTaskSchema = z.object({
       message: "Project parameter is required for multi-agent safety. Please specify the project name to ensure task data isolation and prevent concurrent conflicts. EXAMPLE: 'my-web-app', 'backend-service', 'mobile-client'. This parameter is mandatory in both MCPHub gateway mode and single IDE mode.",
     })
     .describe("REQUIRED - Target project context for task execution. MANDATORY for multi-agent concurrent safety. Ensures task is executed in correct project context and prevents data conflicts between different agents. EXAMPLES: 'my-web-app', 'backend-api', 'mobile-client'. CRITICAL: This parameter prevents concurrent agent conflicts in both MCPHub gateway mode and single IDE mode."),
+  
+  // 🔥 新增：简单的上下文增强参数 - 基于成功模式设计
+  // New: Simple context enhancement parameters - based on successful patterns
+  enableContextAnalysis: z
+    .boolean()
+    .optional()
+    .default(false)
+    .describe("Enable intelligent context analysis for enhanced task execution guidance. DEFAULT: false for backward compatibility. When enabled, provides project-specific insights, workflow stage detection, and quality focus recommendations. USAGE: Set to true when you need context-aware execution guidance."),
+  
+  contextDepth: z
+    .nativeEnum(ContextDepth)
+    .optional()
+    .default(ContextDepth.BASIC)
+    .describe("Depth of context analysis to perform. BASIC: Tech stack detection and project type identification. ENHANCED: Includes workflow stage detection and quality focus prediction. DEFAULT: 'basic'. Only effective when enableContextAnalysis is true."),
+  
+  workflowHint: z
+    .string()
+    .optional()
+    .describe("Optional workflow hint to assist context analysis. Provide brief context about the current development stage or specific focus area. EXAMPLES: 'Setting up new feature', 'Fixing security issue', 'Performance optimization'. USAGE: Helps improve context analysis accuracy.")
 });
 
 export async function executeTask({
   taskId,
   project,
+  enableContextAnalysis = false,
+  contextDepth = ContextDepth.BASIC,
+  workflowHint,
 }: z.infer<typeof executeTaskSchema>) {
   try {
     // 使用强制项目参数确保并发安全的项目上下文管理

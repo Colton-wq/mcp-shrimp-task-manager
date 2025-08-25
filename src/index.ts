@@ -5,6 +5,7 @@ import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js"
 import { zodToJsonSchema } from "zod-to-json-schema";
 import {
   CallToolRequest,
+  CallToolResult,
   CallToolRequestSchema,
   ListToolsRequestSchema,
   InitializedNotificationSchema,
@@ -49,13 +50,15 @@ import {
   researchModeSchema,
   forceSearchProtocol,
   forceSearchProtocolSchema,
+  preventFileCreation,
+  preventFileCreationSchema,
+  mandatoryCodeReview,
+  mandatoryCodeReviewSchema,
 } from "./tools/index.js";
 
 // 导入工作流工具
 // Import workflow tools
 import {
-  codeReviewAndCleanupTool,
-  codeReviewAndCleanupSchema,
   listProjects,
   listProjectsSchema,
   switchProject,
@@ -102,8 +105,31 @@ async function main() {
     }
 
     server.setRequestHandler(ListToolsRequestSchema, async () => {
+      // 工具注册顺序策略 (Tool Registration Order Strategy):
+      // 1. 核心任务工具 (Core Task Tools) - 最常用的任务管理功能
+      // 2. 质量保证工具 (Quality Assurance Tools) - 提升AI回答质量
+      // 3. 任务管理工具 (Task Management Tools) - 任务操作和维护
+      // 4. 分析工具 (Analysis Tools) - 深度思考和分析
+      // 5. 项目管理工具 (Project Management Tools) - 项目级别操作
+      // 6. 研究与搜索工具 (Research & Search Tools) - 信息获取和验证
+      // 7. 工作流工具 (Workflow Tools) - 高级工作流程
+      // 
+      // enhance-response-quality 位于第6位，在核心工具之后、专业工具之前，
+      // 平衡可见性和自然性，提升AI主动调用概率
+      
       return {
         tools: [
+          // === 🚫 强制文件拦截工具 (MANDATORY File Creation Prevention) ===
+          // 最高优先级：强制拦截所有文件创建意图
+          {
+            name: "prevent-file-creation",
+            description: await loadPromptFromTemplate(
+              "toolsDescription/preventFileCreation.md"
+            ),
+            inputSchema: zodToJsonSchema(preventFileCreationSchema),
+          },
+
+          // === 核心任务工具 (Core Task Tools) ===
           {
             name: "plan_task",
             description: await loadPromptFromTemplate(
@@ -153,6 +179,9 @@ async function main() {
             ),
             inputSchema: zodToJsonSchema(verifyTaskSchema),
           },
+
+          
+          // === 任务管理工具 (Task Management Tools) ===
           {
             name: "delete_task",
             description: await loadPromptFromTemplate(
@@ -188,6 +217,8 @@ async function main() {
             ),
             inputSchema: zodToJsonSchema(getTaskDetailSchema),
           },
+          
+          // === 分析工具 (Analysis Tools) ===
           {
             name: "process_thought",
             description: await loadPromptFromTemplate(
@@ -195,6 +226,8 @@ async function main() {
             ),
             inputSchema: zodToJsonSchema(processThoughtSchema),
           },
+          
+          // === 项目管理工具 (Project Management Tools) ===
           {
             name: "init_project_rules",
             description: await loadPromptFromTemplate(
@@ -217,6 +250,8 @@ async function main() {
             description: "Validate project context consistency and provide intelligent suggestions for project switching when mismatches are detected.",
             inputSchema: zodToJsonSchema(validateProjectContextSchema),
           },
+          
+          // === 研究与搜索工具 (Research & Search Tools) ===
           {
             name: "research_mode",
             description: await loadPromptFromTemplate(
@@ -231,12 +266,12 @@ async function main() {
             ),
             inputSchema: zodToJsonSchema(forceSearchProtocolSchema),
           },
+
+          // === 审查工具 (Review Tools) ===
           {
-            name: "code_review_and_cleanup_tool",
-            description: await loadPromptFromTemplate(
-              "toolsDescription/codeReviewAndCleanupTool.md"
-            ),
-            inputSchema: zodToJsonSchema(codeReviewAndCleanupSchema),
+            name: "mandatory_code_review",
+            description: "Dynamic code review tool that generates mandatory review requirements based on AI submission context. Analyzes submission for deception patterns, verifies evidence authenticity, and enforces critical thinking checkpoints. AI cannot bypass or ignore these requirements. Designed for AI models to ensure honest, evidence-based code review.",
+            inputSchema: zodToJsonSchema(mandatoryCodeReviewSchema),
           },
 
         ],
@@ -245,7 +280,7 @@ async function main() {
 
     server.setRequestHandler(
       CallToolRequestSchema,
-      async (request: CallToolRequest) => {
+      async (request: CallToolRequest): Promise<CallToolResult> => {
         try {
           if (!request.params.arguments) {
             throw new Error("No arguments provided");
@@ -253,6 +288,16 @@ async function main() {
 
           let parsedArgs;
           switch (request.params.name) {
+            case "prevent-file-creation":
+              parsedArgs = await preventFileCreationSchema.safeParseAsync(
+                request.params.arguments
+              );
+              if (!parsedArgs.success) {
+                throw new Error(
+                  `Invalid arguments for tool ${request.params.name}: ${parsedArgs.error.message}`
+                );
+              }
+              return await preventFileCreation(parsedArgs.data);
             case "plan_task":
               parsedArgs = await planTaskSchema.safeParseAsync(
                 request.params.arguments
@@ -429,8 +474,8 @@ async function main() {
               }
               return await forceSearchProtocol(parsedArgs.data);
 
-            case "code_review_and_cleanup_tool":
-              parsedArgs = await codeReviewAndCleanupSchema.safeParseAsync(
+            case "mandatory_code_review":
+              parsedArgs = await mandatoryCodeReviewSchema.safeParseAsync(
                 request.params.arguments
               );
               if (!parsedArgs.success) {
@@ -438,7 +483,7 @@ async function main() {
                   `Invalid arguments for tool ${request.params.name}: ${parsedArgs.error.message}`
                 );
               }
-              return await codeReviewAndCleanupTool(parsedArgs.data);
+              return await mandatoryCodeReview(parsedArgs.data);
 
             default:
               throw new Error(`Tool ${request.params.name} does not exist`);

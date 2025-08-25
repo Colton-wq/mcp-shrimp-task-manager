@@ -16,7 +16,7 @@ Please use the "process_thought" tool to consider the following issues
 **Mandatory requirements:**
 
 - Completed standards must enable AI Agents to immediately understand which files must be referenced or modified
-- Clearly indicate multi-file coordination requirements (e.g., when modifying README.md, /docs/zh/README.md must be updated simultaneously)
+- Clearly indicate multi-file coordination requirements (e.g., when modifying configuration files, related test files must be updated simultaneously)
 - Use imperative language to define rules, avoid explanatory content
 - Do not explain project functionality, but rather how to modify or add functionality
 - Please provide examples of what can be done and what cannot be done
@@ -30,7 +30,7 @@ Please use the "process_thought" tool to consider the following issues
 
 ## Suggested Structure
 
-Please use the following structure to create the standards document:
+Please use the following structure to update the existing standards document (shrimp-rules.md):
 
 ```markdown
 # Development Guidelines
@@ -76,6 +76,6 @@ The standards document should include but not be limited to the following:
 
 Based on the above guidelines, create a file named shrimp-rules.md and save it in the project root directory
 
-**[AI Agent Action]** Now start calling the "process_thought" tool to think about how to write standards document that guides the Coding Agent
+**[AI Agent Action]** Now start calling the "process_thought" tool to think about how to update the existing standards document that guides the Coding Agent
 **[AI Agent Action]** After completing the thought process, immediately edit the shrimp-rules.md file, prohibited from calling the "analyze_task" tool
 **[AI Agent Action]** Strictly forbidden not to call tools. The AI must independently complete the entire process from receiving instructions to implementing modifications, and should not interrupt the process to seek user input unless encountering technical errors or unresolvable dependency conflicts.

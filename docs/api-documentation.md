@@ -216,7 +216,7 @@ This document provides comprehensive API documentation for the MCP Shrimp Task M
 
 ### Intelligence and Analysis Tools
 
-#### `code_review_and_cleanup_tool`
+#### `mandatory_code_review`
 **Description**: Execute comprehensive code quality review and project cleanup operations with integrated analysis workflow.
 
 **Parameters**:

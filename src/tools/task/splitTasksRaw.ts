@@ -1,4 +1,5 @@
 import { z } from "zod";
+import path from "path";
 import {
   getAllTasks,
   batchCreateOrUpdateTasks,
@@ -8,6 +9,10 @@ import { RelatedFileType, Task } from "../../types/index.js";
 import { getSplitTasksPrompt } from "../../prompts/index.js";
 import { getAllAvailableAgents } from "../../utils/agentLoader.js";
 import { matchAgentToTask } from "../../utils/agentMatcher.js";
+import { AsyncFileOperations } from "../../utils/asyncFileOperations.js";
+import { ProjectRootDetector } from "../../utils/projectRoot.js";
+import { IntelligentTaskAnalyzer } from "../../prompts/generators/executeTask.js";
+import { TaskAttributeGenerator } from "../../utils/TaskAttributeGenerator.js";
 
 // 拆分任務工具
 // Task splitting tool
@@ -144,6 +149,19 @@ export async function splitTasksRaw({
   project,
   projectDescription,
 }: z.infer<typeof splitTasksRawSchema>) {
+  // 🚨 强制调试输出 - 确认函数被调用
+  console.log("🚨🚨🚨 splitTasksRaw 函数被调用！");
+  console.log("🚨🚨🚨 参数:", { updateMode, project, tasksRawLength: tasksRaw?.length });
+  
+  // 强制写入调试文件
+  try {
+    const fs = await import('fs');
+    const debugMsg = `[${new Date().toISOString()}] splitTasksRaw 被调用！参数: ${JSON.stringify({ updateMode, project }, null, 2)}\n`;
+    await fs.promises.appendFile('E:\\MCP\\mcp-shrimp-task-manager\\function-call-debug.log', debugMsg);
+  } catch (e) {
+    console.error("写入调试文件失败:", e);
+  }
+  
   // Handle intelligent project creation/switching with mandatory project parameter
   // 使用强制项目参数处理智能项目创建/切换
   {
@@ -193,7 +211,7 @@ export async function splitTasksRaw({
     availableAgents = [];
   }
 
-  let tasks: Task[] = [];
+  let tasks: any[] = [];
   try {
     tasks = JSON.parse(tasksRaw);
   } catch (error) {
@@ -258,7 +276,7 @@ export async function splitTasksRaw({
 
     // 將任務資料轉換為符合batchCreateOrUpdateTasks的格式
     // Convert task data to format compatible with batchCreateOrUpdateTasks
-    const convertedTasks = tasks.map((task) => {
+    const convertedTasks = await Promise.all(tasks.map(async (task) => {
       // 創建一個臨時的 Task 對象用於代理匹配
       // Create a temporary Task object for agent matching
       const tempTask: Partial<Task> = {
@@ -274,24 +292,156 @@ export async function splitTasksRaw({
         ? matchAgentToTask(tempTask as Task, availableAgents)
         : undefined;
 
+      // 🎯 增强智能文档存在性检查和类型转换
+      // Enhanced intelligent document existence check and type conversion
+      let processedRelatedFiles = task.relatedFiles;
+      let conversionStats = { total: 0, converted: 0, errors: 0 };
+      
+      console.log(`🔍 检查任务: ${task.name}`);
+      console.log(`📁 relatedFiles 存在:`, !!task.relatedFiles);
+      console.log(`📁 relatedFiles 长度:`, task.relatedFiles?.length || 0);
+      
+      if (task.relatedFiles && task.relatedFiles.length > 0) {
+        console.log(`✅ 进入智能文档管理逻辑`);
+        try {
+          // 提取所有文件路径进行批量检查
+          // Extract all file paths for batch checking
+          const filePaths = task.relatedFiles.map((file: any) => file.path);
+          conversionStats.total = filePaths.length;
+          
+          console.log(`🔍 智能文档管理: 开始检查 ${filePaths.length} 个文件...`);
+          const startTime = performance.now();
+          
+          // 使用可靠的项目根目录检测
+          const projectRoot = ProjectRootDetector.getProjectRoot();
+          console.log(`📁 检测到的项目根目录: ${projectRoot}`);
+          console.log(`📁 当前工作目录: ${process.cwd()}`);
+          
+          // 写入调试日志到文件
+          const debugLog = `[${new Date().toISOString()}] 智能文档管理调试:\n` +
+            `- 检查文件数量: ${filePaths.length}\n` +
+            `- 项目根目录: ${projectRoot}\n` +
+            `- 当前工作目录: ${process.cwd()}\n` +
+            `- 文件列表: ${JSON.stringify(filePaths, null, 2)}\n`;
+          
+          try {
+            await import('fs').then(fs => 
+              fs.promises.appendFile(path.join(projectRoot, 'debug.log'), debugLog)
+            );
+          } catch (e) { 
+            console.error('写入调试日志失败:', e);
+          }
+          
+          const fileExistenceMap = await AsyncFileOperations.checkFilesExist(filePaths, projectRoot);
+          
+          const checkDuration = performance.now() - startTime;
+          console.log(`⚡ 文件检查完成，耗时 ${checkDuration.toFixed(2)}ms`);
+          
+          // 智能转换文件类型：存在的文件从 CREATE 转为 TO_MODIFY
+          // Smart file type conversion: existing files from CREATE to TO_MODIFY
+          console.log(`🗺️ fileExistenceMap 内容:`, Array.from(fileExistenceMap.entries()));
+          
+          processedRelatedFiles = task.relatedFiles.map((file: any) => {
+            // 使用规范化后的完整路径查找
+            const normalizedPath = path.resolve(projectRoot, file.path);
+            const fileExists = fileExistenceMap.get(normalizedPath) || false;
+            console.log(`🔍 检查文件: ${file.path} (规范化: ${normalizedPath}), 存在: ${fileExists}, 类型: ${file.type}`);
+            let finalType = file.type as RelatedFileType;
+            
+            // 如果文件存在且原类型是 CREATE，自动转换为 TO_MODIFY
+            // If file exists and original type is CREATE, automatically convert to TO_MODIFY
+            if (fileExists && file.type === 'CREATE') {
+              finalType = RelatedFileType.TO_MODIFY;
+              conversionStats.converted++;
+              console.log(`📝 智能转换: ${file.path} (CREATE → TO_MODIFY)`);
+            } else if (!fileExists && file.type === 'CREATE') {
+              console.log(`📄 新建文件: ${file.path} (保持 CREATE)`);
+            } else if (fileExists && file.type !== 'CREATE') {
+              console.log(`📋 现有文件: ${file.path} (保持 ${file.type})`);
+            }
+            
+            return {
+              path: file.path,
+              type: finalType,
+              description: file.description,
+              lineStart: file.lineStart,
+              lineEnd: file.lineEnd,
+            };
+          });
+          
+          // 输出转换统计
+          console.log(`✅ 智能文档管理完成: ${conversionStats.converted}/${conversionStats.total} 文件已转换`);
+          
+        } catch (error) {
+          conversionStats.errors++;
+          console.error(`❌ 智能文档管理失败:`, error);
+          // 发生错误时保持原始文件配置
+          processedRelatedFiles = task.relatedFiles;
+        }
+      }
+
+      // 🔥 新增：语义分析集成
+      // New: Semantic analysis integration
+      let enhancedImplementationGuide = task.implementationGuide;
+      let enhancedVerificationCriteria = task.verificationCriteria;
+      let enhancedNotes = task.notes;
+      
+      try {
+        console.log(`🧠 开始语义分析: ${task.name}`);
+        
+        // 创建临时任务对象用于语义分析
+        const tempTaskForAnalysis: Task = {
+          id: 'temp-' + Date.now(),
+          name: task.name,
+          description: task.description,
+          notes: task.notes,
+          status: 'pending' as any,
+          dependencies: (task.dependencies || []).map((dep: string) => ({ taskId: dep })),
+          createdAt: new Date(),
+          updatedAt: new Date(),
+          implementationGuide: task.implementationGuide,
+          verificationCriteria: task.verificationCriteria,
+          relatedFiles: processedRelatedFiles
+        };
+        
+        // 执行任务拆分语义分析
+        const semanticAnalysis = IntelligentTaskAnalyzer.analyzeForTaskSplitting(tempTaskForAnalysis);
+        
+        // 使用 TaskAttributeGenerator 生成增强的任务属性
+        enhancedImplementationGuide = TaskAttributeGenerator.generateEnhancedImplementationGuide(
+          task.implementationGuide,
+          semanticAnalysis
+        );
+        
+        enhancedVerificationCriteria = TaskAttributeGenerator.generateEnhancedVerificationCriteria(
+          task.verificationCriteria,
+          semanticAnalysis
+        );
+        
+        enhancedNotes = TaskAttributeGenerator.generateEnhancedNotes(
+          task.notes,
+          semanticAnalysis
+        );
+        
+        console.log(`✅ 语义分析完成: ${task.name} (优先级: ${semanticAnalysis.priority}, 复杂度: ${semanticAnalysis.complexityIndicators.complexityScore})`);
+        
+      } catch (error) {
+        console.error(`❌ 语义分析失败: ${task.name}`, error);
+        // 发生错误时保持原始任务属性
+      }
+
       return {
         name: task.name,
         description: task.description,
-        notes: task.notes,
+        notes: enhancedNotes, // 使用语义分析增强的notes
         dependencies: task.dependencies as unknown as string[],
-        implementationGuide: task.implementationGuide,
-        verificationCriteria: task.verificationCriteria,
+        implementationGuide: enhancedImplementationGuide, // 使用语义分析增强的实施指导
+        verificationCriteria: enhancedVerificationCriteria, // 使用语义分析增强的验证标准
         agent: matchedAgent, // 添加代理分配
         // Add agent assignment
-        relatedFiles: task.relatedFiles?.map((file) => ({
-          path: file.path,
-          type: file.type as RelatedFileType,
-          description: file.description,
-          lineStart: file.lineStart,
-          lineEnd: file.lineEnd,
-        })),
+        relatedFiles: processedRelatedFiles, // 直接使用已处理的文件列表，保留智能转换结果
       };
-    });
+    }));
 
     // 處理 clearAllTasks 模式
     // Handle clearAllTasks mode

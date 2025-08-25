@@ -18,6 +18,10 @@ export * from "./research/index.js";
 // Export all search tools
 export * from "./search/index.js";
 
+// 導出所有文件创建拦截工具
+// Export all file creation prevention tools
+export * from "./prevention/index.js";
+
 // 導出所有干預工具
 // Export all intervention tools
 export * from "./intervention/index.js";
@@ -25,3 +29,7 @@ export * from "./intervention/index.js";
 // 導出所有工作流工具
 // Export all workflow tools
 export * from "./workflow/index.js";
+
+// 導出所有審查工具
+// Export all review tools
+export * from "./review/index.js";

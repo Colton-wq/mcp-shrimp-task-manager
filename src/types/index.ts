@@ -167,3 +167,57 @@ export interface TaskComplexityAssessment {
   recommendations: string[]; // 處理建議列表
   // recommendations: string[]; // List of processing recommendations
 }
+
+// 工具调用跟踪相关类型定义
+// Tool call tracking related type definitions
+
+// 工具调用指标接口
+// Tool call metrics interface
+export interface ToolCallMetrics {
+  toolName: string; // 工具名称
+  timestamp: number; // 调用时间戳
+  duration: number; // 调用持续时间（毫秒）
+  success: boolean; // 是否成功
+  errorMessage?: string; // 错误信息（如果失败）
+  parameters?: Record<string, any>; // 调用参数
+  responseSize?: number; // 响应大小（字节）
+  userAgent?: string; // 用户代理
+  sessionId?: string; // 会话ID
+}
+
+// 工具使用统计接口
+// Tool usage statistics interface
+export interface ToolUsageStats {
+  toolName: string; // 工具名称
+  totalCalls: number; // 总调用次数
+  successfulCalls: number; // 成功调用次数
+  failedCalls: number; // 失败调用次数
+  successRate: number; // 成功率
+  averageDuration: number; // 平均持续时间
+  totalDuration: number; // 总持续时间
+  minDuration: number; // 最短持续时间
+  maxDuration: number; // 最长持续时间
+  lastCalled: number; // 最后调用时间
+  firstCalled: number; // 首次调用时间
+  callsPerHour: number; // 每小时调用次数
+  callsPerDay: number; // 每天调用次数
+  errorPatterns: Record<string, number>; // 错误模式统计
+}
+
+// A/B测试数据接口
+// A/B test data interface
+export interface ABTestData {
+  testId: string; // 测试ID
+  startTime: number; // 开始时间
+  endTime?: number; // 结束时间
+  variants: { // 测试变体
+    [variantName: string]: {
+      toolName: string; // 工具名称
+      callCount: number; // 调用次数
+      successRate: number; // 成功率
+      averageDuration: number; // 平均持续时间
+      userSatisfaction?: number; // 用户满意度
+    };
+  };
+  status: 'running' | 'completed' | 'paused'; // 测试状态
+}

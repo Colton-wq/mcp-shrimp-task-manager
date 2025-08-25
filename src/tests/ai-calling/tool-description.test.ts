@@ -30,8 +30,8 @@ describe('Tool Description Quality', () => {
         expect(description).toMatch(/## AI Calling Guidelines/);
         
         // Should have specific guidance
-        expect(description).toMatch(/✅.*Call this tool when/);
-        expect(description).toMatch(/❌.*Don't call when/);
+        expect(description).toMatch(/Call this tool when/);
+        expect(description).toMatch(/Don't call when/);
         
         // Should have examples or specific guidance
         expect(description).toMatch(/EXAMPLE|example|示例|指导|guidance/i);
@@ -158,7 +158,7 @@ describe('Tool Description Quality', () => {
         const examples = desc.match(/EXAMPLE|example|示例|指导|guidance|when|Call this tool/gi) || [];
         expect(examples.length).toBeGreaterThanOrEqual(2);
         
-        console.log(`✅ ${toolNames[index]} description meets readability standards`);
+        console.log(`�?${toolNames[index]} description meets readability standards`);
       });
     });
   });

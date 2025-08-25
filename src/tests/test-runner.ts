@@ -161,9 +161,9 @@ class MCPTestRunner {
     console.log(`   Tool Descriptions: ${report.summary.toolDescriptions ? '✅ PASS' : '❌ FAIL'}`);
 
     console.log('\n🎯 Performance Targets:');
-    console.log('   Parameter Accuracy: Target 90%+ ✅');
-    console.log('   Error Recovery: Target 70%+ ✅');
-    console.log('   Path Efficiency: Target 85%+ ✅');
+    console.log('   Parameter Accuracy: Target 90%+ ⭐');
+    console.log('   Error Recovery: Target 70%+ ⭐');
+    console.log('   Path Efficiency: Target 85%+ ⭐');
 
     if (report.summary.overallScore >= 90) {
       console.log('\n🎉 EXCELLENT! All optimization goals achieved.');

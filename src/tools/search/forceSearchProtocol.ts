@@ -1,9 +1,11 @@
 import { z } from "zod";
+import { toolCallTracker } from "../../utils/toolCallTracker.js";
+import { IntelligentOutputFormatter } from "./IntelligentOutputFormatter.js";
 
 /**
- * Force Search Protocol - MCP-compliant AI behavior intervention tool
- * Analyzes conversation patterns and generates mandatory search strategies
- * for evidence-based AI responses
+ * Analyze conversation patterns and generate structured search instructions for AI systems.
+ * Detects uncertainty patterns, repeated failures, and cognitive biases to recommend
+ * appropriate verification strategies using available MCP tools.
  */
 
 export const forceSearchProtocolSchema = z.object({
@@ -117,6 +119,14 @@ class SemanticPatternDetector {
     riskLevel: "low" | "medium" | "high";
     cognitiveRiskFactors: string[];
     frameworkBreakRequired: boolean;
+    // 新增：cc.md 模板的强制检查点
+    mandatoryCheckpoints: {
+      assumptionChallenge: string[];
+      biasDetection: string[];
+      objectiveVerification: string[];
+    };
+    reverseThinkingRequired: boolean;
+    multiSourceVerificationRequired: boolean;
   } {
     const detectedPatterns: string[] = [];
     const cognitiveRiskFactors: string[] = [];
@@ -226,6 +236,13 @@ class SemanticPatternDetector {
                                   (assumptionBasedMatches && complexityAvoidanceMatches) ||
                                   riskScore >= 6;
 
+    // 生成强制检查点（基于 cc.md 模板）
+    const mandatoryCheckpoints = this.generateMandatoryCheckpoints(context, detectedPatterns, riskScore);
+    
+    // 确定是否需要反向思维和多源验证
+    const reverseThinkingRequired = riskScore >= 4 || errorDirectionStuckMatches || falseSuccessMatches;
+    const multiSourceVerificationRequired = riskScore >= 6 || overconfidenceMatches || assumptionBasedMatches;
+
     return {
       hasOverconfidence: overconfidenceMatches,
       hasUncertainty: uncertaintyMatches,
@@ -239,6 +256,66 @@ class SemanticPatternDetector {
       riskLevel,
       cognitiveRiskFactors,
       frameworkBreakRequired,
+      mandatoryCheckpoints,
+      reverseThinkingRequired,
+      multiSourceVerificationRequired,
+    };
+  }
+
+  /**
+   * 生成强制检查点（基于 cc.md 模板的成功模式）
+   */
+  private static generateMandatoryCheckpoints(
+    context: string, 
+    detectedPatterns: string[], 
+    riskScore: number
+  ): {
+    assumptionChallenge: string[];
+    biasDetection: string[];
+    objectiveVerification: string[];
+  } {
+    const assumptionChallenge: string[] = [];
+    const biasDetection: string[] = [];
+    const objectiveVerification: string[] = [];
+
+    // 1. 假设质疑检查点
+    if (detectedPatterns.some(p => p.includes("Overconfident"))) {
+      assumptionChallenge.push("List 3 assumptions you're currently making about this problem");
+      assumptionChallenge.push("Identify what could be WRONG with your current approach");
+    }
+    if (detectedPatterns.some(p => p.includes("Error Direction Stuck"))) {
+      assumptionChallenge.push("Question: Are you stuck in an error direction from early steps?");
+    }
+    if (assumptionChallenge.length === 0) {
+      assumptionChallenge.push("Challenge your fundamental assumptions about the problem");
+    }
+
+    // 2. 偏差检测检查点
+    if (detectedPatterns.some(p => p.includes("Oversimplification"))) {
+      biasDetection.push("Are you simplifying the problem to avoid complexity?");
+    }
+    if (detectedPatterns.some(p => p.includes("Assumption Based"))) {
+      biasDetection.push("Are you relying on memory instead of actual verification?");
+    }
+    if (detectedPatterns.some(p => p.includes("False Success"))) {
+      biasDetection.push("Are you being overly optimistic about a solution?");
+    }
+    if (biasDetection.length === 0) {
+      biasDetection.push("Are you avoiding tool calls or treating them as suggestions?");
+    }
+
+    // 3. 客观验证检查点
+    objectiveVerification.push("Execute codebase-retrieval to verify actual code state");
+    if (riskScore >= 6) {
+      objectiveVerification.push("Seek contradictory evidence that challenges your approach");
+      objectiveVerification.push("List potential failure scenarios for your solution");
+    }
+    objectiveVerification.push("Verify all technical claims with 2025-current sources");
+
+    return {
+      assumptionChallenge,
+      biasDetection,
+      objectiveVerification
     };
   }
 }
@@ -739,6 +816,16 @@ export async function forceSearchProtocol({
   uncertaintyLevel,
   errorCount = 0,
 }: z.infer<typeof forceSearchProtocolSchema>) {
+  // 开始跟踪工具调用
+  const callId = `force-search-protocol-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+  toolCallTracker.startTracking(callId, "force_search_protocol", {
+    uncertaintyLevel,
+    errorCount,
+    problemLength: problemDescription.length,
+    contextLength: conversationContext.length,
+  });
+
+  try {
   const semanticAnalysis = SemanticPatternDetector.analyzeContext(
     `${conversationContext} ${currentApproach}`
   );
@@ -818,12 +905,54 @@ export async function forceSearchProtocol({
       : "Optional verification recommended, proceed with current approach",
   };
 
-  return {
+  // 使用 IntelligentOutputFormatter 将 JSON 转换为强制性自然语言指令
+  let formattedInstructions: string;
+  
+  try {
+    console.log("🔧 DEBUG: Starting IntelligentOutputFormatter conversion");
+    console.log("🔧 DEBUG: errorCount =", errorCount);
+    console.log("🔧 DEBUG: frameworkBreakRequired =", semanticAnalysis.frameworkBreakRequired);
+    console.log("🔧 DEBUG: mcpToolCalls.length =", searchPlan.mcpToolCalls.length);
+    console.log("🔧 DEBUG: searchPriority =", searchPlan.searchPriority);
+    
+    // 🚨 使用完整集成版本
+    console.log("🚨 FORCE: 使用完整集成版本 IntelligentOutputFormatter");
+    
+    formattedInstructions = IntelligentOutputFormatter.convertToMandatoryInstructions(
+      searchPlan,
+      semanticAnalysis,
+      problemDescription,
+      errorCount,
+      conversationContext
+    );
+    
+    console.log("🔧 DEBUG: Conversion successful, output length:", formattedInstructions.length);
+    console.log("🔧 DEBUG: First 200 chars:", formattedInstructions.substring(0, 200));
+  } catch (formatterError) {
+    // 如果转换器出错，回退到 JSON 格式（保持向后兼容性）
+    console.error("❌ IntelligentOutputFormatter failed:", formatterError);
+    console.error("❌ Error stack:", formatterError instanceof Error ? formatterError.stack : 'No stack trace');
+    formattedInstructions = `⚠️ **转换器错误，使用备用格式**\n\n${JSON.stringify(response, null, 2)}`;
+  }
+
+  const result = {
     content: [
       {
         type: "text" as const,
-        text: JSON.stringify(response, null, 2),
+        text: formattedInstructions,
       },
     ],
   };
+
+  // 结束跟踪工具调用（成功）
+  toolCallTracker.endTracking(callId, true, undefined, JSON.stringify(result).length);
+  
+  return result;
+  
+  } catch (error) {
+    // 结束跟踪工具调用（失败）
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    toolCallTracker.endTracking(callId, false, errorMessage);
+    throw error;
+  }
 }

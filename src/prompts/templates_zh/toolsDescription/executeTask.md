@@ -1,12 +1,9 @@
-## 工具用途
-获取特定任务执行的详细指导说明。此工具提供逐步实施指导，旨在引导您完美完成任务。
+Retrieve instructional guidance for specific task execution. Provides step-by-step guidance to complete programming tasks properly.
 
-## 何时使用
-- **准备实施**具有明确需求的特定任务时
-- **需要详细执行步骤**进行复杂实施时
-- **需要结构化指导**完成任务时
-- **想要逐步说明**而非一般建议时
-- **需要实施路线图**包含具体行动时
+## When to Use
+- Ready to execute a specific task from the task list
+- Need detailed guidance for task implementation
+- Have identified the task to work on next
 
 ## 参数说明
 - `taskId`（必需）：要执行任务的唯一标识符（必须是有效的UUID格式）

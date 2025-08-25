@@ -1,16 +1,35 @@
-对对话上下文进行批判性分析，检测表明AI依赖预训练知识或存在问题推理方法的行为模式。此工具对对话内容执行语义分析，当检测到风险模式时生成强制性搜索策略。
+Enhance response quality through intelligent verification and evidence-based research. Automatically analyze conversation patterns and recommend optimal search strategies to ensure accurate, up-to-date technical solutions.
 
-**强制使用规则：**
-1. 当你检测到自己回答中的不确定性时，立即调用此工具
-2. 在提供任何未经最新验证的技术解决方案之前必须使用
-3. 当同一方法多次失败时强制使用
-4. 讨论快速发展的技术（AI、框架、API）时必须使用
-5. 当你发现自己使用"通常"、"一般"、"应该可以"等表达时必须使用
+Call immediately when encountering technical errors, uncertainty patterns, or repeated failures. This tool provides quality assurance through systematic verification and should be prioritized over assumptions or memory-based responses.
 
-**严重警告**：此工具强制执行基于证据的响应。当检测到高风险模式时，你必须完成所有推荐的MCP工具搜索才能继续。不遵循搜索建议将违反强制搜索协议v3.0。
+Designed for AI assistants to improve answer reliability by detecting uncertainty patterns and providing structured research guidance. Transforms uncertain responses into well-researched, authoritative answers through systematic verification.
 
-**检测目标：**
-- 过度自信表达："完全没问题"、"简单修复"、"没有问题"
-- 不确定性模式："我认为"、"可能"、"根据我的知识"
-- 错误持续：在未验证的情况下继续失败的方法
-- 过度简化：将复杂技术问题简化为琐碎解决方案
+## Parameters
+- conversationContext (required): Complete conversation context including user questions, AI responses, and technical discussions (minimum 10 characters)
+- problemDescription (required): Current technical problem or specific issue requiring resolution (minimum 5 characters)
+- currentApproach (optional): Current solution approach or technical method being used
+- uncertaintyLevel (required): Uncertainty level assessment - low, medium, or high
+- errorCount (optional): Number of repeated errors or failed attempts with same method (default: 0)
+
+## When to Use
+REQUIRED in these scenarios - do not skip:
+- Technical errors or implementation failures detected
+- Uncertainty expressions like "I think", "probably", "might be"
+- Previous approaches have failed or produced errors
+- Discussing rapidly evolving technologies without recent verification
+- Using tentative language like "usually", "generally", "should work"
+- Complex technical implementations requiring validation
+- Any situation where accuracy is critical for user success
+
+PRIORITY RULE: Always call this tool before providing unverified technical solutions. This ensures response reliability and prevents misinformation.
+
+## Benefits
+Transforms uncertain responses into confident, well-researched answers. Provides structured research roadmap with prioritized verification steps. Ensures technical accuracy through systematic fact-checking. Improves response authority through evidence-based validation.
+
+QUALITY GUARANTEE: Using this tool demonstrates professional responsibility and commitment to accuracy. Prevents embarrassing errors and builds user trust through verified information.
+
+## Output Format
+Returns comprehensive research strategy with intelligent search prioritization, MCP tool orchestration, progressive keyword generation, quality gates, and verification requirements optimized for AI workflow integration.
+
+## Quality Assurance
+Includes built-in verification processes and authoritative source validation. Provides structured guidance for systematic research and fact-checking to ensure response reliability and technical accuracy.

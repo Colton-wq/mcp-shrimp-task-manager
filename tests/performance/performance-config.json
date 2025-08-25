@@ -1,0 +1,82 @@
+{
+  "performanceBaselines": {
+    "fileScanning": {
+      "small": {
+        "fileCount": 10,
+        "maxDuration": 2.0,
+        "description": "小型项目文件扫描基线"
+      },
+      "medium": {
+        "fileCount": 100,
+        "maxDuration": 10.0,
+        "description": "中型项目文件扫描基线"
+      },
+      "large": {
+        "fileCount": 500,
+        "maxDuration": 50.0,
+        "description": "大型项目文件扫描基线"
+      }
+    },
+    "codeAnalysis": {
+      "small": {
+        "fileCount": 10,
+        "maxDuration": 2.0,
+        "description": "小型项目代码分析基线"
+      },
+      "medium": {
+        "fileCount": 100,
+        "maxDuration": 8.0,
+        "description": "中型项目代码分析基线"
+      },
+      "large": {
+        "fileCount": 500,
+        "maxDuration": 35.0,
+        "description": "大型项目代码分析基线"
+      }
+    },
+    "fileCleanup": {
+      "standard": {
+        "fileCount": 20,
+        "maxDuration": 15.0,
+        "description": "标准文件清理基线"
+      }
+    }
+  },
+  "regressionThresholds": {
+    "warningThreshold": 1.2,
+    "errorThreshold": 1.5,
+    "description": "性能回归阈值：1.2为警告，1.5为错误"
+  },
+  "testConfiguration": {
+    "testSizes": ["small", "medium", "large"],
+    "iterations": 3,
+    "warmupRuns": 1,
+    "timeout": 60000,
+    "memoryMonitoring": true,
+    "cpuProfiling": false
+  },
+  "optimizationTargets": {
+    "fileScanning": {
+      "targetImprovement": 0.6,
+      "priority": "high",
+      "techniques": ["parallelization", "async-operations"]
+    },
+    "codeAnalysis": {
+      "targetImprovement": 0.4,
+      "priority": "medium", 
+      "techniques": ["incremental-analysis", "caching"]
+    },
+    "fileCleanup": {
+      "targetImprovement": 0.2,
+      "priority": "low",
+      "techniques": ["batch-processing"]
+    }
+  },
+  "reportingConfig": {
+    "outputFormat": "markdown",
+    "includeCharts": false,
+    "detailLevel": "comprehensive",
+    "saveHistory": true,
+    "historyPath": "./performance-history"
+  }
+}

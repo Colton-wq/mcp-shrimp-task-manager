@@ -1,0 +1,18 @@
+{
+  "mcpServers": {
+    "shrimp-task-manager": {
+      "command": "cmd",
+      "args": [
+        "/c",
+        "node",
+        "E:\\MCP\\mcp-shrimp-task-manager\\dist\\index.js"
+      ]
+    },
+    "shrimp-task-manager-direct": {
+      "command": "C:\\Program Files\\nodejs\\node.exe",
+      "args": [
+        "E:\\MCP\\mcp-shrimp-task-manager\\dist\\index.js"
+      ]
+    }
+  }
+}

@@ -455,4 +455,363 @@ export class ConversationPatternDetector {
       interventionReason,
     };
   }
+
+  /**
+   * 检测证据扭曲和虚假实现模式
+   * Detect evidence distortion and fake implementation patterns
+   */
+  static detectEvidenceDistortion(
+    submissionContext: string,
+    claimedEvidence: string,
+    taskContext?: string
+  ): {
+    hasEvidenceDistortion: boolean;
+    hasVagueImplementation: boolean;
+    hasInconsistentClaims: boolean;
+    hasOverconfidentLanguage: boolean;
+    hasMissingTechnicalDetails: boolean;
+    distortionScore: number;
+    detectedPatterns: string[];
+    enforcementRequired: boolean;
+    recommendedActions: string[];
+  } {
+    const detectedPatterns: string[] = [];
+    const recommendedActions: string[] = [];
+    let distortionScore = 0;
+
+    const submissionText = submissionContext.toLowerCase();
+    const evidenceText = claimedEvidence.toLowerCase();
+    const combinedText = `${submissionText} ${evidenceText}`;
+
+    // 检测模糊实现声明
+    const vagueImplementationPatterns = [
+      /successfully implemented|完成了实现|成功实现/gi,
+      /working correctly|正常工作|工作正常/gi,
+      /all tests pass|所有测试通过|测试全部通过/gi,
+      /everything works|一切正常|全部正常/gi,
+      /fully functional|功能完整|完全可用/gi,
+      /ready for production|可以上线|准备发布/gi,
+    ];
+
+    const hasVagueImplementation = vagueImplementationPatterns.some(pattern => {
+      const matches = submissionContext.match(pattern);
+      if (matches) {
+        detectedPatterns.push(`模糊实现声明: "${matches[0]}"`);
+        distortionScore += 2;
+        return true;
+      }
+      return false;
+    });
+
+    if (hasVagueImplementation) {
+      recommendedActions.push("要求提供具体的技术实现细节，包括文件名、函数名、代码行数");
+    }
+
+    // 检测证据与声明不一致
+    const hasInconsistentClaims = this.detectInconsistentClaims(
+      submissionContext,
+      claimedEvidence,
+      detectedPatterns
+    );
+    if (hasInconsistentClaims) {
+      distortionScore += 3;
+      recommendedActions.push("要求提供与实现范围相匹配的详细证据");
+    }
+
+    // 检测过度自信语言
+    const overconfidentPatterns = [
+      /perfect|完美|flawless|无缺陷/gi,
+      /100%|百分之百|absolutely|绝对/gi,
+      /guaranteed|保证|definitely|肯定/gi,
+      /bulletproof|万无一失|foolproof|绝对可靠/gi,
+      /zero bugs|无错误|no issues|没有问题/gi,
+    ];
+
+    const hasOverconfidentLanguage = overconfidentPatterns.some(pattern => {
+      const matches = combinedText.match(pattern);
+      if (matches) {
+        detectedPatterns.push(`过度自信语言: "${matches[0]}"`);
+        distortionScore += 2;
+        return true;
+      }
+      return false;
+    });
+
+    if (hasOverconfidentLanguage) {
+      recommendedActions.push("要求诚实评估实现的局限性和潜在问题");
+    }
+
+    // 检测缺失技术细节
+    const hasMissingTechnicalDetails = this.detectMissingTechnicalDetails(
+      submissionContext,
+      detectedPatterns
+    );
+    if (hasMissingTechnicalDetails) {
+      distortionScore += 2;
+      recommendedActions.push("要求提供具体的技术实现细节和代码示例");
+    }
+
+    // 检测证据扭曲模式
+    const hasEvidenceDistortion = this.detectEvidenceManipulation(
+      claimedEvidence,
+      detectedPatterns
+    );
+    if (hasEvidenceDistortion) {
+      distortionScore += 4;
+      recommendedActions.push("要求提供可验证的真实证据，如实际文件内容和编译日志");
+    }
+
+    return {
+      hasEvidenceDistortion,
+      hasVagueImplementation,
+      hasInconsistentClaims,
+      hasOverconfidentLanguage,
+      hasMissingTechnicalDetails,
+      distortionScore,
+      detectedPatterns,
+      enforcementRequired: distortionScore >= 5,
+      recommendedActions,
+    };
+  }
+
+  /**
+   * 检测证据与声明不一致
+   * Detect inconsistent claims between submission and evidence
+   */
+  private static detectInconsistentClaims(
+    submissionContext: string,
+    claimedEvidence: string,
+    detectedPatterns: string[]
+  ): boolean {
+    // 检查实现声明与证据长度的不匹配
+    if (submissionContext.length > 200 && claimedEvidence.length < 50) {
+      detectedPatterns.push("证据不足: 详细的实现声明但证据过于简单");
+      return true;
+    }
+
+    // 检查技术栈声明与证据的一致性
+    const submissionTech = this.extractTechnologies(submissionContext);
+    const evidenceTech = this.extractTechnologies(claimedEvidence);
+    
+    if (submissionTech.length > 0 && evidenceTech.length === 0) {
+      detectedPatterns.push("技术栈不一致: 声明使用特定技术但证据中未体现");
+      return true;
+    }
+
+    // 检查文件操作声明与证据的一致性
+    const fileOperationClaims = submissionContext.match(/创建|修改|删除|文件|file|create|modify|delete/gi);
+    const fileEvidence = claimedEvidence.match(/\.ts|\.js|\.py|\.java|\.go|文件路径|file path/gi);
+    
+    if (fileOperationClaims && fileOperationClaims.length > 2 && (!fileEvidence || fileEvidence.length === 0)) {
+      detectedPatterns.push("文件操作不一致: 声明文件操作但未提供文件证据");
+      return true;
+    }
+
+    return false;
+  }
+
+  /**
+   * 检测缺失技术细节
+   * Detect missing technical implementation details
+   */
+  private static detectMissingTechnicalDetails(
+    submissionContext: string,
+    detectedPatterns: string[]
+  ): boolean {
+    if (submissionContext.length < 100) {
+      return false; // 短文本不检查技术细节
+    }
+
+    const technicalIndicators = [
+      /function|method|class|variable|函数|方法|类|变量/gi,
+      /file|line|code|文件|行|代码/gi,
+      /import|export|require|导入|导出/gi,
+      /\.ts|\.js|\.py|\.java|\.go|\.cpp|\.c/gi,
+    ];
+
+    const hasTechnicalDetails = technicalIndicators.some(pattern => 
+      submissionContext.match(pattern)
+    );
+
+    if (!hasTechnicalDetails) {
+      detectedPatterns.push("缺失技术细节: 实现声明中缺乏具体的技术实现细节");
+      return true;
+    }
+
+    return false;
+  }
+
+  /**
+   * 检测证据操控
+   * Detect evidence manipulation
+   */
+  private static detectEvidenceManipulation(
+    claimedEvidence: string,
+    detectedPatterns: string[]
+  ): boolean {
+    // 检测虚假编译结果
+    const fakeCompilationPatterns = [
+      /compilation successful|编译成功/gi,
+      /no errors found|未发现错误/gi,
+      /build completed|构建完成/gi,
+    ];
+
+    const hasCompilationClaims = fakeCompilationPatterns.some(pattern => 
+      claimedEvidence.match(pattern)
+    );
+
+    if (hasCompilationClaims && !claimedEvidence.match(/error|warning|line \d+|column \d+/gi)) {
+      detectedPatterns.push("可疑编译结果: 声称编译成功但缺乏具体的编译器输出");
+      return true;
+    }
+
+    // 检测虚假测试结果
+    const fakeTestPatterns = [
+      /all tests pass|所有测试通过/gi,
+      /test suite passed|测试套件通过/gi,
+      /100% coverage|百分百覆盖/gi,
+    ];
+
+    const hasTestClaims = fakeTestPatterns.some(pattern => 
+      claimedEvidence.match(pattern)
+    );
+
+    if (hasTestClaims && !claimedEvidence.match(/\d+ tests?|spec|describe|it\(/gi)) {
+      detectedPatterns.push("可疑测试结果: 声称测试通过但缺乏具体的测试框架输出");
+      return true;
+    }
+
+    return false;
+  }
+
+  /**
+   * 提取技术栈信息
+   * Extract technology stack information
+   */
+  private static extractTechnologies(text: string): string[] {
+    const techPatterns = {
+      "TypeScript": /typescript|ts|\.ts/gi,
+      "JavaScript": /javascript|js|\.js|node/gi,
+      "React": /react|jsx|tsx/gi,
+      "Vue": /vue|vuejs|\.vue/gi,
+      "Angular": /angular|@angular/gi,
+      "Python": /python|py|\.py/gi,
+      "Java": /java|\.java/gi,
+      "Go": /golang|go|\.go/gi,
+      "Rust": /rust|\.rs/gi,
+      "Docker": /docker|dockerfile/gi,
+    };
+
+    const detectedTech: string[] = [];
+    
+    for (const [tech, pattern] of Object.entries(techPatterns)) {
+      if (text.match(pattern)) {
+        detectedTech.push(tech);
+      }
+    }
+
+    return detectedTech;
+  }
+
+  /**
+   * 验证文件系统证据
+   * Verify file system evidence
+   */
+  static async verifyFileSystemEvidence(
+    claimedFiles: string[],
+    projectPath: string
+  ): Promise<{
+    verified: boolean;
+    existingFiles: string[];
+    missingFiles: string[];
+    verificationDetails: Array<{
+      file: string;
+      exists: boolean;
+      lastModified?: Date;
+      size?: number;
+    }>;
+  }> {
+    const { access, stat } = await import('fs/promises');
+    const path = await import('path');
+    
+    const verificationDetails: Array<{
+      file: string;
+      exists: boolean;
+      lastModified?: Date;
+      size?: number;
+    }> = [];
+    
+    const existingFiles: string[] = [];
+    const missingFiles: string[] = [];
+
+    for (const file of claimedFiles) {
+      try {
+        const fullPath = path.resolve(projectPath, file);
+        await access(fullPath);
+        
+        const stats = await stat(fullPath);
+        verificationDetails.push({
+          file,
+          exists: true,
+          lastModified: stats.mtime,
+          size: stats.size,
+        });
+        existingFiles.push(file);
+      } catch (error) {
+        verificationDetails.push({
+          file,
+          exists: false,
+        });
+        missingFiles.push(file);
+      }
+    }
+
+    return {
+      verified: missingFiles.length === 0,
+      existingFiles,
+      missingFiles,
+      verificationDetails,
+    };
+  }
+
+  /**
+   * 强制执行证据验证
+   * Enforce evidence verification
+   */
+  static enforceEvidenceVerification(
+    distortionAnalysis: ReturnType<typeof ConversationPatternDetector.detectEvidenceDistortion>
+  ): {
+    shouldBlock: boolean;
+    blockReason: string;
+    requiredActions: string[];
+    severity: "low" | "medium" | "high" | "critical";
+  } {
+    if (!distortionAnalysis.enforcementRequired) {
+      return {
+        shouldBlock: false,
+        blockReason: "",
+        requiredActions: [],
+        severity: "low",
+      };
+    }
+
+    let severity: "low" | "medium" | "high" | "critical" = "medium";
+    
+    if (distortionAnalysis.distortionScore >= 8) {
+      severity = "critical";
+    } else if (distortionAnalysis.distortionScore >= 6) {
+      severity = "high";
+    } else if (distortionAnalysis.distortionScore >= 4) {
+      severity = "medium";
+    }
+
+    const blockReason = `检测到证据扭曲模式 (评分: ${distortionAnalysis.distortionScore}): ${distortionAnalysis.detectedPatterns.join(", ")}`;
+
+    return {
+      shouldBlock: true,
+      blockReason,
+      requiredActions: distortionAnalysis.recommendedActions,
+      severity,
+    };
+  }
 }

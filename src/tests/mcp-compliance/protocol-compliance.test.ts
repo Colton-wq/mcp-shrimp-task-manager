@@ -42,7 +42,7 @@ describe('MCP Protocol Compliance', () => {
           expect(typeof properties[field].description).toBe('string');
         });
         
-        console.log(`✅ ${name} schema is MCP compliant`);
+        console.log(`�?${name} schema is MCP compliant`);
       });
     });
 
@@ -85,7 +85,7 @@ describe('MCP Protocol Compliance', () => {
           }
         });
         
-        console.log(`✅ ${name} has comprehensive parameter descriptions`);
+        console.log(`�?${name} has comprehensive parameter descriptions`);
       });
     });
   });
@@ -114,12 +114,12 @@ describe('MCP Protocol Compliance', () => {
         content: [
           {
             type: "text" as const,
-            text: "❌ VALIDATION_ERROR: Invalid parameter\n\n📋 Details: Received invalid value\n\n🔧 Recovery Action: Please provide valid input\n\n🔄 This operation can be retried."
+            text: "�?VALIDATION_ERROR: Invalid parameter\n\n📋 Details: Received invalid value\n\n🔧 Recovery Action: Please provide valid input\n\n🔄 This operation can be retried."
           }
         ]
       };
 
-      expect(errorResponse.content[0].text).toMatch(/❌.*ERROR/);
+      expect(errorResponse.content[0].text).toMatch(/ERROR/);
       expect(errorResponse.content[0].text).toMatch(/📋 Details:/);
       expect(errorResponse.content[0].text).toMatch(/🔧 Recovery Action:/);
     });

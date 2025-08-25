@@ -1,15 +1,21 @@
-驗證並評分指定項目的任務，若達標自動標記完成，並保存摘要。**完成後必須自動調用code_review_and_cleanup_tool進行質量檢查。**
+Verify and score task completion according to verification criteria. Provides quality assurance and automatically completes tasks that meet standards.
 
-- 動作導向：Verify and complete a task in a project, then trigger automated quality review
-- 功能說明：根據驗證標準對任務進行評分；當 score ≥ 80 自動完成任務並保存摘要
-- 參數：
-  - taskId: string 目標任務ID（UUID v4）
-  - summary: string 驗證摘要（≥30字）
-  - score: number 0–100
-  - project?: string 指定要驗證的項目（可選），省略則使用目前會話項目
-- 限制：僅對進行中任務有效；不會更改任務其它屬性
-- 輸出：結構化文本，包含結果與建議
-- 錯誤處理：標準 JSON-RPC 錯誤格式
+## When to Use
+- Task implementation completed and ready for verification
+- Need quality assessment against verification criteria
+- Want to complete task with proper validation
+
+## Parameters
+- taskId (required): Unique identifier of task to verify (UUID format)
+- summary (required): Task completion summary or issue description
+- score (required): Overall quality score from 0-100
+- project (optional): Target project context (defaults to current session project)
+
+## Expected Output
+Verification results with quality assessment, score breakdown, and task completion status update.
+
+## Error Handling
+Standard JSON-RPC error format with specific guidance for resolution and retry procedures.
 
 ## 🔄 **強制性工作流繼續指導**
 
@@ -19,11 +25,12 @@
 
 1. **立即調用質量檢查工具**：
    ```
-   code_review_and_cleanup_tool({
+   mandatory_code_review({
      taskId: "剛驗證的任務ID",
      project: "當前項目名稱",
-     reviewScope: "comprehensive",
-     cleanupMode: "safe"
+     submissionContext: "任務驗證完成，進行強制性代碼審查",
+     claimedEvidence: "任務實施證據和驗證結果",
+     reviewScope: "comprehensive"
    })
    ```
 
@@ -34,14 +41,14 @@
 
 3. **工作流順序**：
    ```
-   verify_task → code_review_and_cleanup_tool → execute_task
+   verify_task → mandatory_code_review → execute_task
    ```
 
 ### 🎯 **自動化工作流說明**
 
 **當您完成任務驗證後：**
-- 如果評分 ≥ 80：任務自動標記為完成，然後**必須**調用 code_review_and_cleanup_tool
-- 如果評分 < 80：任務保持進行中狀態，仍然**必須**調用 code_review_and_cleanup_tool 進行診斷
+- 如果評分 ≥ 80：任務自動標記為完成，然後**必須**調用 mandatory_code_review
+- 如果評分 < 80：任務保持進行中狀態，仍然**必須**調用 mandatory_code_review 進行診斷
 
 **質量檢查工具將會：**
 - 執行代碼標準檢查
@@ -52,6 +59,6 @@
 ### ⚠️ **關鍵提醒**
 
 **這是一個自動化工作流系統。verify_task 只是第一步，不是終點。**
-**您必須確保工作流的完整執行：verify_task → code_review_and_cleanup_tool → execute_task**
+**您必須確保工作流的完整執行：verify_task → mandatory_code_review → execute_task**
 
-**不要在任務驗證後停止。立即調用 code_review_and_cleanup_tool 以維持工作流的連續性。**
+**不要在任務驗證後停止。立即調用 mandatory_code_review 以維持工作流的連續性。**

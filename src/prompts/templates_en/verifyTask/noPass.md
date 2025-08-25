@@ -15,11 +15,11 @@ Task "{name}" (ID: `{id}`) verification failed
 **CRITICAL: You MUST follow this resolution workflow:**
 
 ### Step 1: Immediate Issue Analysis (MANDATORY)
-**You MUST call the `code_review_and_cleanup_tool` to identify specific issues:**
+**You MUST call the `mandatory_code_review` to identify specific issues:**
 
 **Tool Call Required:**
 ```
-code_review_and_cleanup_tool({
+mandatory_code_review({
   taskId: "{id}",
   project: "current_project_name",
   reviewScope: "diagnostic",
@@ -45,7 +45,7 @@ code_review_and_cleanup_tool({
 - ❌ Do NOT skip the diagnostic step
 
 **MANDATORY ACTIONS:**
-- ✅ MUST call `code_review_and_cleanup_tool` for diagnostics
+- ✅ MUST call `mandatory_code_review` for diagnostics
 - ✅ MUST fix all identified issues systematically
 - ✅ MUST re-verify after fixes
 - ✅ MUST use Desktop Commander MCP tools for file operations

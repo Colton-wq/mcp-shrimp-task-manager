@@ -7,10 +7,12 @@
 export interface MCPTextContent {
   type: "text";
   text: string;
+  [key: string]: unknown; // 添加索引签名以兼容MCP SDK
 }
 
 export interface MCPResponse {
   content: MCPTextContent[];
+  [key: string]: unknown; // 添加索引签名以兼容MCP SDK
 }
 
 // Error Types for standardized error handling

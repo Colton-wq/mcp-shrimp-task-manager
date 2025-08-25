@@ -1235,9 +1235,9 @@ class AnalysisReportGenerator {
 
 ```typescript
 // 更新后的MCP工具接口，符合2025标准
-export const codeReviewAndCleanupTool = {
-  name: 'code_review_and_cleanup_tool',
-  description: 'Execute comprehensive code quality review and project cleanup operations',
+export const mandatoryCodeReview = {
+  name: 'mandatory_code_review',
+  description: 'Dynamic code review tool that generates mandatory review requirements based on AI submission context',
   inputSchema: {
     type: 'object',
     properties: {

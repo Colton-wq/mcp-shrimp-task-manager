@@ -1,41 +1,33 @@
-**Please strictly follow the guidelines below**
+## Task Overview
 
-## Task Execution
+## Task Execution Framework
 
-**Name:** {name}
-
-**ID:** `{id}`
-
-**Description:** {description}
+**Task:** {name} (ID: `{id}`)
+**Objective:** {description}
 
 {notesTemplate}
-
 {implementationGuideTemplate}
-
 {verificationCriteriaTemplate}
-
 {analysisResultTemplate}
-
 {dependencyTasksTemplate}
-
 {relatedFilesSummaryTemplate}
-
 {complexityTemplate}
-
 {intelligentAnalysisTemplate}
 
-## Execution Steps
+## Implementation Steps
 
-1. **Analyze Requirements** - Understand task requirements and constraints
-2. **Design Solution** - Develop implementation plan and testing strategy
-3. **Implement Solution** - Execute according to plan, handle edge cases
-4. **Test and Verify** - Ensure functionality correctness and robustness
+1. **Analyze** - Understand requirements and existing code patterns
+2. **Implement** - Make focused changes using Desktop Commander MCP tools
+3. **Test** - Verify functionality and run existing tests
+4. **Review** - Check for breaking changes and code quality
+5. **Complete** - Call verify_task when finished
 
-## Quality Requirements
+## Quality Standards
 
-- **Scope Management** - Only modify relevant code, avoid feature creep
-- **Code Quality** - Comply with coding standards, handle exceptions
-- **Performance Considerations** - Pay attention to algorithm efficiency and resource usage
+- Zero compilation errors
+- Maintain backward compatibility  
+- Follow existing code patterns
+- Use appropriate MCP tools
+- Write clear commit messages
 
-Begin executing the task according to the instructions. Automatically continue to the next step following best practices, and when ready, call the verify_task tool to perform verification.
-**Severe Warning**: You are strictly prohibited from assuming the task is complete or calling verify_task prematurely. You must use `edit_block_desktop-commander`, `write_file_desktop-commander`, `read_file_desktop-commander`, and related Desktop Commander MCP tools to actually complete the task. VSCode Terminal, `read-terminal`, and non-Desktop Commander `launch-process` are forbidden.
+Execute the task efficiently. Call verify_task when implementation is complete.

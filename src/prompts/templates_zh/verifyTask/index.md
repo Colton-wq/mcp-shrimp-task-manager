@@ -18,20 +18,21 @@
 
 **關鍵：完成任務摘要後，您必須執行以下工作流程步驟：**
 
-### 步驟1：立即質量保證（強制性）
-**您必須在提供任務摘要後立即調用 `code_review_and_cleanup_tool`。**
+### 步驟1：強制代碼審查（強制性）
+**您必須在提供任務摘要後立即調用 `mandatory_code_review`。**
 
 **必需的工具調用：**
 ```
-code_review_and_cleanup_tool({
+mandatory_code_review({
   taskId: "{id}",
   project: "current_project_name",
-  reviewScope: "comprehensive",
-  cleanupMode: "safe"
+  submissionContext: "詳細描述已實現的內容，包括具體技術細節、修改的文件和添加的功能",
+  claimedEvidence: "實現的具體證據：編譯結果、測試輸出、文件系統變更、性能指標",
+  reviewScope: "comprehensive"
 })
 ```
 
-**目的：** 執行全面的代碼質量審查、安全審計和項目清理，確保實現符合標準。
+**目的：** 執行防AI欺騙的強制代碼審查，包含動態要求生成、證據驗證和批判性思維檢查點，確保誠實、高質量的實現。
 
 ### 步驟2：偏離檢測分析
 **在調用質量工具之前，分析實現是否偏離了原始用戶需求：**
@@ -56,9 +57,9 @@ code_review_and_cleanup_tool({
 - ❌ 不要在沒有驗證的情況下假設質量
 
 **強制性操作：**
-- ✅ 必須在任務摘要後調用 `code_review_and_cleanup_tool`
+- ✅ 必須在任務摘要後調用 `mandatory_code_review` 並提供詳細的提交上下文和證據
 - ✅ 必須分析實現的偏離情況
-- ✅ 必須自動繼續工作流程
+- ✅ 必須根據審查結果自動繼續工作流程
 - ✅ 必須使用Desktop Commander MCP工具進行所有文件操作
 
 {learningFeedback}

@@ -1,5 +1,18 @@
 ## Enhanced Task Splitting - {updateMode} Mode
 
+## 🚫 ABSOLUTE PROHIBITIONS
+
+**DOCUMENT CREATION FORBIDDEN:**
+- **NEVER** create tasks for documentation, README files, guides, or manuals
+- **NEVER** suggest tasks for writing documentation or creating .md/.txt files
+- **NEVER** include "documentation", "guide", "manual", or "README" in task descriptions
+- Focus ONLY on functional code implementation, testing, and technical configuration
+
+**MVP-FIRST PRINCIPLE:**
+- Prioritize minimum viable functionality over comprehensive features
+- Break down to smallest testable units that deliver user value
+- Defer optimization and enhancement tasks to later iterations
+
 ## Comprehensive Splitting Strategy
 
 ### **1. Multi-Dimensional Decomposition**
