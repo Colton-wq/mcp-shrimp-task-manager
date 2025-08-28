@@ -30,7 +30,8 @@ Requirements: {requirements}
 **Simplification Check:**
 - Can existing code/features solve this?
 - What's the minimum viable implementation?
-- How can we break this into smaller parts?
+- How can we break this into 30-minute atomic tasks?
+- What's the smallest first step that works?
 
 **Code Analysis:** Use `codebase-retrieval` for similar functionality, `search_code_desktop-commander` for patterns, `Everything MCP` for related files.
 

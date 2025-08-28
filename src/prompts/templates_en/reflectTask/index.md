@@ -51,12 +51,12 @@ After receiving the solution and suggestions, conduct comprehensive critical ref
    - Are new features properly integrated into the existing architecture?
    - Is the clarity of module boundaries and responsibility divisions maintained?
 
-**3.3 Over-design Review**
+**3.3 Atomic Task Assessment**
 
-   - Is unnecessary complexity introduced?
-   - Is there excessive feature splitting or abstraction?
-   - Are we solving problems that don't exist yet?
-   - Could this be implemented more simply?
+   - Are the planned tasks simple enough to execute immediately?
+   - Does each task represent ONE concrete file/code change?
+   - Can each task be completed in 30 minutes without further planning?
+   - Are we over-complicating what should be simple operations?
 
 **3.4 Simplicity and Implementability**
 

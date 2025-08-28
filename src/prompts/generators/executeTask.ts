@@ -1793,8 +1793,8 @@ class IntelligentTaskAnalyzer {
   }
 
   /**
-   * 分析拆分建议
-   * Analyze split recommendation
+   * 分析拆分建议 - 彻底重写版本
+   * Analyze split recommendation - Complete rewrite
    */
   private static analyzeSplitRecommendation(task: Task, analysis: SemanticAnalysis): {
     shouldSplit: boolean;
@@ -1803,45 +1803,110 @@ class IntelligentTaskAnalyzer {
   } {
     const { complexityIndicators, keyElements } = analysis;
     const descriptionLength = task.description.length;
-    const dependenciesCount = task.dependencies.length;
+    const dependenciesCount = task.dependencies?.length || 0;
+    const relatedFilesCount = task.relatedFiles?.length || 0;
     
-    // 判断是否需要拆分
-    let shouldSplit = false;
-    let suggestedSubtasks = 1;
-    let reason = '';
-    
-    // 基于复杂度评分判断
-    if (complexityIndicators.complexityScore >= 70) {
-      shouldSplit = true;
-      suggestedSubtasks = Math.min(Math.ceil(complexityIndicators.complexityScore / 25), 5);
-      reason = `高复杂度任务（评分: ${complexityIndicators.complexityScore}），建议拆分为${suggestedSubtasks}个子任务`;
-    }
-    // 基于描述长度判断
-    else if (descriptionLength > 800) {
-      shouldSplit = true;
-      suggestedSubtasks = Math.min(Math.ceil(descriptionLength / 400), 4);
-      reason = `任务描述过长（${descriptionLength}字符），建议拆分为${suggestedSubtasks}个子任务`;
-    }
-    // 基于核心功能数量判断
-    else if (keyElements.coreFunctions.length > 3) {
-      shouldSplit = true;
-      suggestedSubtasks = Math.min(keyElements.coreFunctions.length, 5);
-      reason = `包含多个核心功能（${keyElements.coreFunctions.length}个），建议按功能拆分`;
-    }
-    // 基于依赖关系判断
-    else if (dependenciesCount > 3) {
-      shouldSplit = true;
-      suggestedSubtasks = Math.min(Math.ceil(dependenciesCount / 2), 4);
-      reason = `依赖关系复杂（${dependenciesCount}个依赖），建议拆分以降低耦合`;
-    }
-    else {
-      reason = '任务复杂度适中，可作为单一任务执行';
+    // 🔥 CRITICAL FIX: 重写拆分逻辑，使用合理阈值
+    // 基于描述长度的智能拆分（大幅降低阈值）
+    if (descriptionLength > 150) {
+      const suggestedSubtasks = Math.min(Math.ceil(descriptionLength / 100), 8);
+      return {
+        shouldSplit: true,
+        suggestedSubtasks,
+        reason: `任务描述较长（${descriptionLength}字符），建议拆分为${suggestedSubtasks}个子任务以提高执行效率`
+      };
     }
     
+    // 基于核心功能数量的拆分（降低阈值）
+    if (keyElements.coreFunctions.length > 1) {
+      return {
+        shouldSplit: true,
+        suggestedSubtasks: Math.min(keyElements.coreFunctions.length, 6),
+        reason: `包含多个核心功能（${keyElements.coreFunctions.length}个），建议按功能模块拆分`
+      };
+    }
+    
+    // 基于技术栈复杂度的拆分（降低阈值）
+    const techStackCount = analysis.technicalRequirements.techStack.length;
+    if (techStackCount > 2) {
+      return {
+        shouldSplit: true,
+        suggestedSubtasks: Math.min(Math.ceil(techStackCount / 2) + 1, 5),
+        reason: `涉及多个技术栈（${techStackCount}个），建议按技术层次拆分`
+      };
+    }
+    
+    // 基于依赖关系的拆分（降低阈值）
+    if (dependenciesCount > 2) {
+      return {
+        shouldSplit: true,
+        suggestedSubtasks: Math.min(Math.ceil(dependenciesCount / 2), 4),
+        reason: `依赖关系较多（${dependenciesCount}个），建议拆分以降低耦合度`
+      };
+    }
+    
+    // 基于相关文件数量的拆分
+    if (relatedFilesCount > 3) {
+      return {
+        shouldSplit: true,
+        suggestedSubtasks: Math.min(Math.ceil(relatedFilesCount / 3), 5),
+        reason: `涉及多个文件（${relatedFilesCount}个），建议按文件组织拆分`
+      };
+    }
+    
+    // 基于关键词密度的拆分判断
+    const keywordCount = analysis.keywords.length;
+    if (keywordCount > 8) {
+      return {
+        shouldSplit: true,
+        suggestedSubtasks: Math.min(Math.ceil(keywordCount / 5), 4),
+        reason: `任务涉及概念较多（${keywordCount}个关键词），建议按主题拆分`
+      };
+    }
+    
+    // 基于任务复杂度评分的拆分（大幅降低阈值）
+    if (complexityIndicators.complexityScore > 15) {
+      const suggestedSubtasks = Math.min(Math.ceil(complexityIndicators.complexityScore / 20), 6);
+      return {
+        shouldSplit: true,
+        suggestedSubtasks,
+        reason: `任务复杂度较高（评分: ${complexityIndicators.complexityScore}），建议拆分为${suggestedSubtasks}个子任务`
+      };
+    }
+    
+    // 特殊关键词检测 - 强制拆分
+    const forceVSplitKeywords = [
+      '电商', 'e-commerce', '购物网站', '在线商店', 'shopping', 'marketplace',
+      '用户系统', '管理后台', '支付', 'payment', '订单', 'order',
+      '微服务', 'microservice', '分布式', 'distributed',
+      '完整', 'complete', '整套', '全套', 'full system'
+    ];
+    
+    const taskText = `${task.description} ${task.implementationGuide || ''}`.toLowerCase();
+    const hasForceVSplitKeyword = forceVSplitKeywords.some(keyword => taskText.includes(keyword));
+    
+    if (hasForceVSplitKeyword) {
+      return {
+        shouldSplit: true,
+        suggestedSubtasks: 6,
+        reason: '检测到复杂项目关键词，建议拆分为多个独立模块进行开发'
+      };
+    }
+    
+    // 只有非常简单的任务才不拆分
+    if (descriptionLength < 30 && keywordCount < 3 && techStackCount < 2) {
+      return {
+        shouldSplit: false,
+        suggestedSubtasks: 1,
+        reason: '任务较为简单，可作为单一任务执行'
+      };
+    }
+    
+    // 默认建议拆分（更积极的拆分策略）
     return {
-      shouldSplit,
-      suggestedSubtasks,
-      reason
+      shouldSplit: true,
+      suggestedSubtasks: 3,
+      reason: '为提高开发效率和代码质量，建议进行适当拆分'
     };
   }
 

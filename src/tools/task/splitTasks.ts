@@ -13,6 +13,8 @@ import { AsyncFileOperations } from "../../utils/asyncFileOperations.js";
 import { ProjectRootDetector } from "../../utils/projectRoot.js";
 import { IntelligentTaskAnalyzer } from "../../prompts/generators/executeTask.js";
 import { TaskAttributeGenerator } from "../../utils/TaskAttributeGenerator.js";
+import { DynamicGuidanceGenerator } from "../../utils/DynamicGuidanceGenerator.js";
+import { OperationType } from "../../types/semanticAnalysis.js";
 
 // 拆分任務工具
 // Task splitting tool
@@ -216,6 +218,21 @@ export async function splitTasks({
     let createdTasks: Task[] = [];
     let allTasks: Task[] = [];
 
+    // 智能任务拆分检查 - 在处理前进行预检
+    // Smart task splitting check - pre-processing validation
+    const tasksNeedSplitting: string[] = [];
+    tasks.forEach(task => {
+      const taskContent = `${task.name} ${task.description}`;
+      if (TaskAttributeGenerator.shouldSplitTask(taskContent)) {
+        tasksNeedSplitting.push(task.name);
+      }
+    });
+    
+    if (tasksNeedSplitting.length > 0) {
+      console.log(`🔍 检测到需要进一步拆分的复杂任务: ${tasksNeedSplitting.join(', ')}`);
+      console.log(`💡 建议: 将复杂任务拆分为更小的子任务以提高执行效率`);
+    }
+
     // 將任務資料轉換為符合batchCreateOrUpdateTasks的格式
     // Convert task data to format compatible with batchCreateOrUpdateTasks
     const convertedTasks = await Promise.all(tasks.map(async (task) => {
@@ -323,7 +340,7 @@ export async function splitTasks({
         // 执行任务拆分语义分析
         const semanticAnalysis = IntelligentTaskAnalyzer.analyzeForTaskSplitting(tempTaskForAnalysis);
         
-        // 使用 TaskAttributeGenerator 生成增强的任务属性
+        // 使用简化的 TaskAttributeGenerator 和动态指导生成
         enhancedImplementationGuide = TaskAttributeGenerator.generateEnhancedImplementationGuide(
           task.implementationGuide,
           semanticAnalysis
@@ -339,10 +356,20 @@ export async function splitTasks({
           semanticAnalysis
         );
         
-        console.log(`✅ 语义分析完成: ${task.name} (优先级: ${semanticAnalysis.priority}, 复杂度: ${semanticAnalysis.complexityIndicators.complexityScore})`);
+        // 添加动态技术栈感知的上下文步骤
+        const contextualSteps = DynamicGuidanceGenerator.generateContextualStepSequence(
+          semanticAnalysis,
+          semanticAnalysis.operationType
+        );
+        
+        if (contextualSteps.length > 0) {
+          enhancedImplementationGuide += '\n\n**执行步骤序列:**\n' + contextualSteps.join('\n');
+        }
+        
+        console.log(`✅ 动态指导生成完成: ${task.name} (操作类型: ${semanticAnalysis.operationType})`);
         
       } catch (error) {
-        console.error(`❌ 语义分析失败: ${task.name}`, error);
+        console.error(`❌ 动态指导生成失败: ${task.name}`, error);
         // 发生错误时保持原始任务属性
       }
 

@@ -1,102 +1,58 @@
-## Enhanced Task Splitting - {updateMode} Mode
+## Dynamic Task Splitting - {updateMode} Mode
 
-## 🚫 ABSOLUTE PROHIBITIONS
+## Core Principles
 
-**DOCUMENT CREATION FORBIDDEN:**
-- **NEVER** create tasks for documentation, README files, guides, or manuals
-- **NEVER** suggest tasks for writing documentation or creating .md/.txt files
-- **NEVER** include "documentation", "guide", "manual", or "README" in task descriptions
-- Focus ONLY on functional code implementation, testing, and technical configuration
+**EXECUTABLE GUIDANCE ONLY:**
+- Generate specific, actionable directives for AI execution
+- NO generic examples or theoretical discussions
+- NO "we completed X" retrospective language
+- Focus on immediate next steps
 
-**MVP-FIRST PRINCIPLE:**
-- Prioritize minimum viable functionality over comprehensive features
-- Break down to smallest testable units that deliver user value
-- Defer optimization and enhancement tasks to later iterations
+**SMART SPLITTING TRIGGERS:**
+- Tasks >200 characters: automatic decomposition
+- Multiple technology keywords detected: technical separation
+- Complex operations identified: logical breakdown
 
-## Comprehensive Splitting Strategy
+**CONTEXT-AWARE GENERATION:**
+- Generate guidance based on detected tech stack
+- Provide multiple strategic approaches per task
+- Adjust detail level by actual complexity indicators
 
-### **1. Multi-Dimensional Decomposition**
-
-**Functional Decomposition:**
-- Independent testable sub-functions with clear inputs and outputs
-- Each task should have a single, well-defined responsibility
-- Consider user-facing vs. internal functionality
-
-**Technical Layer Decomposition:**
-- Separate tasks along architectural layers, ensuring clear interfaces
-- Database layer, business logic layer, API layer, UI layer
-- Consider cross-cutting concerns (logging, security, monitoring)
-
-**Development Stage Decomposition:**
-- Core functionality first, optimization features later
-- MVP features vs. enhancement features
-- Critical path vs. nice-to-have features
-
-**Risk-based Decomposition:**
-- Isolate high-risk parts, reduce overall risk
-- Separate experimental/uncertain tasks from stable ones
-- Consider external dependencies and integration points
-
-### **2. Boundary Conditions & Edge Cases Planning**
-
-**Resource Constraints:**
-- Consider time limitations for each task
-- Identify tasks requiring specific skills or expertise
-- Plan for potential resource conflicts
-
-**Failure Scenarios:**
-- What happens if a critical task fails?
-- Which tasks can be delayed without blocking others?
-- What are the rollback procedures for each task?
-
-**Integration Boundaries:**
-- How do tasks interact with existing systems?
-- What are the data flow dependencies between tasks?
-- Which tasks require coordination with external teams?
-
-### **3. Enhanced Task Quality Framework**
-
-**Task Atomicity:**
-- Each task is small and specific enough to be completed independently
-- Task should be completable by one person in a reasonable timeframe
-- Clear definition of "done" for each task
-
-**Dependency Management:**
-- Task dependencies form a directed acyclic graph, avoiding circular dependencies
-- Consider both technical and resource dependencies
-- Plan for parallel execution opportunities
-
-**Description Completeness:**
-- Each task description is clear and accurate, including necessary context
-- Include acceptance criteria and verification methods
-- Specify required skills and estimated effort
-
-**Risk Assessment per Task:**
-- Identify high-risk tasks that might fail or take longer
-- Plan mitigation strategies for critical path tasks
-- Consider external dependencies and their reliability
-
-**Boundary Condition Handling:**
-- How does each task handle edge cases and error conditions?
-- What are the input validation requirements?
-- How are failures detected and reported?
-
-## Task List
+## Task Analysis
 
 {tasksContent}
 
-## Dependency Management
+## Atomic Task Splitting Directives
 
-- Dependencies can be set using task names or task IDs
-- Minimize the number of dependencies, only set direct prerequisite tasks
-- Avoid circular dependencies, ensure the task graph is directed and acyclic
-- Balance the critical path, optimize possibilities for parallel execution
+**ATOMIC TASK PRINCIPLE:**
+- Each subtask = ONE concrete file operation or code change
+- 30-minute rule: Each task completable in 30 minutes max
+- Single responsibility: One task, one specific outcome
+- Immediate executability: No further planning needed
 
-## Decision Points
+**SPLITTING STRATEGY:**
 
-- If task splitting is found unreasonable: call "split_tasks" again to adjust
-- If task splitting is confirmed to be sound: generate execution plan, determine priorities
+**Level 1 - File Operations:**
+- "Create file X.js with basic structure"
+- "Add function Y to existing file Z.js" 
+- "Update CSS styles in file A.css"
 
-**Severe Warning** Each time you call split_tasks, the parameters you pass cannot exceed 5000 characters. If it exceeds 5000 characters, please call the tool multiple times to complete
+**Level 2 - Code Units:**
+- "Write validation function for email input"
+- "Add click handler to submit button"
+- "Create database connection in config.js"
 
-**If there are remaining tasks, please continue to call "split_tasks"**
+**Level 3 - Integration Steps:**
+- "Connect form to validation function"
+- "Link button to API endpoint"
+- "Test database connection"
+
+**QUALITY CHECKS:**
+- Can this be done in one sitting?
+- Is the deliverable clearly defined?
+- Does it require no additional analysis?
+
+**If splitting needed:** call "split_tasks" with atomic task breakdown
+**If ready to proceed:** execute immediate atomic tasks
+
+**Parameter Limit:** Max 5000 characters per split_tasks call - use multiple calls if needed

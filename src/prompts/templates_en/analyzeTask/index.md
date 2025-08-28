@@ -29,10 +29,10 @@ Complete the following analysis and call `reflect_task` at the end:
 ### Implementation Strategy
 
 **Development Approach:**
-- Minimum viable implementation approach
-- Incremental build strategy and testing points
-- Integration with existing systems
-- Risk mitigation and quality assurance
+- Atomic task breakdown: Each step = one concrete file/function change
+- 30-minute execution rule: No task should need further analysis
+- Sequential simplicity: Task A → Task B → Task C (clear chain)
+- Immediate executability: What can be coded right now?
 
 ### Final Recommendation
 
